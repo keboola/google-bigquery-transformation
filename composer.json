@@ -17,13 +17,13 @@
     },
     "autoload": {
         "psr-4": {
-            "MyComponent\\": "src/"
+            "BigQueryTransformation\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "MyComponent\\Tests\\": "tests/phpunit/",
-            "MyComponent\\FunctionalTests\\": "tests/functional/"
+            "BigQueryTransformation\\Tests\\": "tests/phpunit/",
+            "BigQueryTransformation\\FunctionalTests\\": "tests/functional/"
         }
     },
     "scripts": {
