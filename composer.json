@@ -1,6 +1,6 @@
 {
-    "name": "keboola/my-component",
-    "description": "MyComponent description",
+    "name": "keboola/google-bigquery-transformation",
+    "description": "Transformation component for Google BigQuery",
     "license": "MIT",
     "require": {
         "php": "^8.1",
@@ -17,13 +17,13 @@
     },
     "autoload": {
         "psr-4": {
-            "MyComponent\\": "src/"
+            "BigQueryTransformation\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "MyComponent\\Tests\\": "tests/phpunit/",
-            "MyComponent\\FunctionalTests\\": "tests/functional/"
+            "BigQueryTransformation\\Tests\\": "tests/phpunit/",
+            "BigQueryTransformation\\FunctionalTests\\": "tests/functional/"
         }
     },
     "scripts": {
@@ -51,6 +51,9 @@
     },
     "config": {
         "sort-packages": true,
-        "optimize-autoloader": true
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     }
 }

@@ -3,12 +3,12 @@ name: 'GitHub Actions'
     - push
 concurrency: 'ci-${{ github.ref }}'
 env:
-    APP_IMAGE: keboola-component
+    APP_IMAGE: keboola/google-bigquery-transformation
     KBC_DEVELOPERPORTAL_VENDOR: keboola
     KBC_DEVELOPERPORTAL_APP: keboola.google-bigquery-transformation
     KBC_DEVELOPERPORTAL_USERNAME: keboola+google_bigquery_transformation_gha
     KBC_DEVELOPERPORTAL_PASSWORD: '${{ secrets.KBC_DEVELOPERPORTAL_PASSWORD }}'
-    DOCKERHUB_USER: ''
+    DOCKERHUB_USER: '${{ secrets.DOCKERHUB_USER }}'
     DOCKERHUB_TOKEN: '${{ secrets.DOCKERHUB_TOKEN }}'
     KBC_STORAGE_TOKEN: '${{ secrets.KBC_STORAGE_TOKEN }}'
     KBC_TEST_PROJECT_URL: ''
