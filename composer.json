@@ -4,6 +4,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.1",
+        "google/cloud-bigquery": "^1.23",
         "keboola/php-component": "^9.0"
     },
     "require-dev": {
