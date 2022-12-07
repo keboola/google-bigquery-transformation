@@ -8,8 +8,12 @@ env:
     KBC_DEVELOPERPORTAL_APP: keboola.google-bigquery-transformation
     KBC_DEVELOPERPORTAL_USERNAME: keboola+google_bigquery_transformation_gha
     KBC_DEVELOPERPORTAL_PASSWORD: '${{ secrets.KBC_DEVELOPERPORTAL_PASSWORD }}'
+
     DOCKERHUB_USER: '${{ secrets.DOCKERHUB_USER }}'
     DOCKERHUB_TOKEN: '${{ secrets.DOCKERHUB_TOKEN }}'
+
+    BQ_CREDENTIALS: '${{ secrets.BQ_CREDENTIALS }}'
+
     KBC_STORAGE_TOKEN: '${{ secrets.KBC_STORAGE_TOKEN }}'
     KBC_TEST_PROJECT_URL: ''
     KBC_TEST_PROJECT_CONFIGS: ''
@@ -73,7 +77,7 @@ jobs:
                     tag_as_latest: true
             -
                 name: 'Run tests'
-                run: 'docker run ${{env.APP_IMAGE}} composer ci'
+                run: 'docker run -e BQ_CREDENTIALS ${{env.APP_IMAGE}} composer ci'
     tests-in-kbc:
         needs: build
         runs-on: ubuntu-latest
