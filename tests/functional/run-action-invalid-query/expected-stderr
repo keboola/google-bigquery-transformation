@@ -1,0 +1,1 @@
+Query "CREATE TABLE IF NOT EXISTS `example` (name VARCHAR(200), usercity VARCHAR(200));" in "first code" failed with error: "Type not found: VARCHAR at [2:8]"
