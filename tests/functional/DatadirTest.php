@@ -54,11 +54,6 @@ class DatadirTest extends DatadirTestCase
                 throw new RuntimeException(sprintf('File "%s" must return callback!', $checkResultPhpFile));
             }
 
-            $credentialsJson = getenv('BQ_CREDENTIALS');
-            if (!$credentialsJson) {
-                throw new RuntimeException('Missing "BQ_CREDENTIALS" environment variable!');
-            }
-
             $initCallback($this);
         }
     }
