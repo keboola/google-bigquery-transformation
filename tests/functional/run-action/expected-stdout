@@ -1,0 +1,4 @@
+Processing block "first block".
+Processing code "first code".
+Running query "CREATE TABLE IF NOT EXISTS `example` (name STRING, usercity STRING);".
+Running query "INSERT INTO `example` VALUES ('test example name', 'Prague'), ('test example name 2', 'Brno'), ('test example name 3', 'Ostrava')".
