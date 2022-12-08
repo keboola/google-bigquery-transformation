@@ -1,2 +1,8 @@
 {
+  "authorization": {
+    "workspace": {
+      "schema": "%env(string:BQ_DATASET)%",
+      "credentials": "%env(string:BQ_CREDENTIALS)%"
+    }
+  }
 }

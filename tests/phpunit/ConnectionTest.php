@@ -6,20 +6,19 @@ namespace BigQueryTransformation\Tests;
 
 use BigQueryTransformation\BigQueryConnection;
 use BigQueryTransformation\Exception\ApplicationException;
+use BigQueryTransformation\Traits\GetEnvVarsTrait;
 use Google\Cloud\Core\Exception\ServiceException;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 use Throwable;
 
 class ConnectionTest extends TestCase
 {
-    /**
-     * @throws \JsonException
-     */
+    use GetEnvVarsTrait;
+
     public function testConnection(): void
     {
         try {
-            $connection = new BigQueryConnection($this->getCredentialsJson());
+            $connection = new BigQueryConnection($this->getEnvVars());
             $connection->executeQuery('SELECT 1');
         } catch (Throwable $e) {
             $this->fail($e->getMessage());
@@ -30,17 +29,21 @@ class ConnectionTest extends TestCase
 
     /**
      * @throws \JsonException
+     * @throws \BigQueryTransformation\Exception\ApplicationException
      */
     public function testConnectionWrongCredentials(): void
     {
-        /** @var array<string, string> $credentialsArray */
-        $credentialsArray = json_decode($this->getCredentialsJson(), true);
-        unset($credentialsArray['private_key']);
+        $configArray = $this->getEnvVars();
 
-            $this->expectException(ServiceException::class);
+        /** @var array<string, string> $credentialsArray */
+        $credentialsArray = json_decode($configArray['credentials'], true);
+        unset($credentialsArray['private_key']);
+        $configArray['credentials'] = json_encode($credentialsArray, JSON_THROW_ON_ERROR);
+
+        $this->expectException(ServiceException::class);
         $this->expectExceptionMessage('json key is missing the private_key field');
 
-        $connection = new BigQueryConnection(json_encode($credentialsArray, JSON_THROW_ON_ERROR));
+        $connection = new BigQueryConnection($configArray);
         $connection->executeQuery('SELECT 1');
     }
 
@@ -52,17 +55,10 @@ class ConnectionTest extends TestCase
         $this->expectException(ApplicationException::class);
         $this->expectExceptionMessage('Invalid JSON with BigQuery credentials');
 
-        $connection = new BigQueryConnection('');
+        $configArray = $this->getEnvVars();
+        $configArray['credentials'] = '';
+
+        $connection = new BigQueryConnection($configArray);
         $connection->executeQuery('SELECT 1');
-    }
-
-    protected function getCredentialsJson(): string
-    {
-        $credentialsJson = getenv('BQ_CREDENTIALS');
-        if (!$credentialsJson) {
-            throw new RuntimeException('Missing "BQ_CREDENTIALS" environment variable!');
-        }
-
-        return $credentialsJson;
     }
 }

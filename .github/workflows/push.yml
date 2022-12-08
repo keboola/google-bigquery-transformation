@@ -12,6 +12,7 @@ env:
     DOCKERHUB_USER: '${{ secrets.DOCKERHUB_USER }}'
     DOCKERHUB_TOKEN: '${{ secrets.DOCKERHUB_TOKEN }}'
 
+    BQ_DATASET: WORKSPACE_928415912
     BQ_CREDENTIALS: '${{ secrets.BQ_CREDENTIALS }}'
 
     KBC_STORAGE_TOKEN: '${{ secrets.KBC_STORAGE_TOKEN }}'
@@ -77,7 +78,7 @@ jobs:
                     tag_as_latest: true
             -
                 name: 'Run tests'
-                run: 'docker run -e BQ_CREDENTIALS ${{env.APP_IMAGE}} composer ci'
+                run: 'docker run -e BQ_CREDENTIALS -e BQ_DATASET ${{env.APP_IMAGE}} composer ci'
     tests-in-kbc:
         needs: build
         runs-on: ubuntu-latest

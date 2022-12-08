@@ -11,7 +11,7 @@ use Keboola\Component\Config\BaseConfig;
 class Config extends BaseConfig
 {
     /**
-     * @return array<array{name: string, codes: array<array{name: string, script: string}>}>
+     * @return array<array{name: string, codes: array<array{name: string, script: array<int, string>}>}>
      */
     public function getBlocks(): array
     {
@@ -19,7 +19,7 @@ class Config extends BaseConfig
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, string>
      * @throws \BigQueryTransformation\Exception\ApplicationException
      */
     public function getDatabaseConfig(): array

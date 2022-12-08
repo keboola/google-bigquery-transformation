@@ -24,7 +24,8 @@
     "autoload-dev": {
         "psr-4": {
             "BigQueryTransformation\\Tests\\": "tests/phpunit/",
-            "BigQueryTransformation\\FunctionalTests\\": "tests/functional/"
+            "BigQueryTransformation\\FunctionalTests\\": "tests/functional/",
+            "BigQueryTransformation\\Traits\\": "tests/traits/"
         }
     },
     "scripts": {
