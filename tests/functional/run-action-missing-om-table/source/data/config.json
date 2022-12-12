@@ -9,8 +9,8 @@
     "output": {
       "tables": [
         {
-          "source": "example",
-          "destination": "out.c-my.example"
+          "source": "non-existing-table",
+          "destination": "out.non-existing-table"
         }
       ]
     }
