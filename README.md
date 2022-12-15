@@ -46,6 +46,8 @@ docker-compose build
 docker-compose run --rm dev composer install --no-scripts
 ```
 
+Create `.env` file from template `.env.dist` and fill it with JSON BigQuery credentials
+
 Run the test suite using this command:
 
 ```shell

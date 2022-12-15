@@ -2,6 +2,9 @@ version: '3'
 services:
   dev:
     build: .
+    environment:
+      - BQ_DATASET
+      - BQ_CREDENTIALS
     volumes:
       - ./:/code
       - ./data:/data
