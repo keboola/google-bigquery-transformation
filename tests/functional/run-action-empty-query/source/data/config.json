@@ -1,0 +1,25 @@
+{
+  "authorization": {
+    "workspace": {
+      "schema": "%env(string:BQ_DATASET)%",
+      "credentials": "%env(string:BQ_CREDENTIALS)%"
+    }
+  },
+  "parameters": {
+    "blocks": [
+      {
+        "name": "Block 1",
+        "codes": [
+          {
+            "name": "Code 1",
+            "script": [
+              "  ",
+              "CREATE TABLE IF NOT EXISTS `example` (name STRING, usercity STRING);",
+              "INSERT INTO `example` VALUES ('test example name', 'Prague'), ('test example name 2', 'Brno'), ('test example name 3', 'Ostrava')"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

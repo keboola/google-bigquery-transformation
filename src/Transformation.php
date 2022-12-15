@@ -62,6 +62,7 @@ class Transformation
             }
 
             if (strtoupper(substr($uncommentedQuery, 0, 6)) === 'SELECT') {
+                $this->logger->info(sprintf('Ignoring select query "%s".', $this->queryExcerpt($query)));
                 continue;
             }
 
