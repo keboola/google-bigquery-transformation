@@ -8,9 +8,15 @@ use Keboola\Component\BaseComponent;
 
 class Component extends BaseComponent
 {
+    /**
+     * @throws \BigQueryTransformation\Exception\ApplicationException
+     */
     protected function run(): void
     {
-        // @TODO implement
+        /** @var \BigQueryTransformation\Config $config */
+        $config = $this->getConfig();
+        $transformation = new Transformation($config, $this->getLogger());
+        $transformation->processBlocks($config->getBlocks());
     }
 
     protected function getConfigClass(): string

@@ -1,0 +1,3 @@
+Processing block "first block".
+Processing code "first code".
+Running query "CREATE TABLE IF NOT EXISTS `example` (name VARCHAR(200), usercity VARCHAR(200));".
