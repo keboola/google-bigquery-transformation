@@ -19,7 +19,7 @@ class Config extends BaseConfig
     }
 
     /**
-     * @return array<string, string>
+     * @return array<string, string|array<string, string>>
      * @throws \BigQueryTransformation\Exception\ApplicationException
      */
     public function getDatabaseConfig(): array
