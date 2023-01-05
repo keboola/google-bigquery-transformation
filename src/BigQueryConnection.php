@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace BigQueryTransformation;
 
-use BigQueryTransformation\Exception\ApplicationException;
 use Google\Cloud\BigQuery\BigQueryClient;
 use Google\Cloud\BigQuery\Dataset;
 use Google\Cloud\BigQuery\QueryResults;
-use JsonException;
 use Keboola\Component\BaseComponent;
 
 class BigQueryConnection extends BaseComponent
@@ -17,24 +15,14 @@ class BigQueryConnection extends BaseComponent
     private Dataset $dataset;
 
     /**
-     * @param array<string, string> $databaseConfig
-     * @throws \BigQueryTransformation\Exception\ApplicationException
+     * @param array<string, string|array<string, string>> $databaseConfig
      */
     public function __construct(array $databaseConfig)
     {
-        try {
-            $credentials = (array) json_decode(
-                $databaseConfig['credentials'],
-                true,
-                512,
-                JSON_THROW_ON_ERROR
-            );
-            $this->client = new BigQueryClient(['keyFile' => $credentials]);
-        } catch (JsonException $e) {
-            throw new ApplicationException('Invalid JSON with BigQuery credentials');
-        }
-
-        $this->dataset = $this->client->dataset($databaseConfig['schema']);
+        $this->client = new BigQueryClient(['keyFile' => $databaseConfig['credentials']]);
+        /** @var string $schema */
+        $schema = $databaseConfig['schema'];
+        $this->dataset = $this->client->dataset($schema);
     }
 
     public function executeQuery(string $query): QueryResults

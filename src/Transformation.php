@@ -29,7 +29,9 @@ class Transformation
     {
         $this->connection = new BigQueryConnection($config->getDatabaseConfig());
         $this->logger = $logger;
-        $this->schema = $config->getDatabaseConfig()['schema'];
+        /** @var string $schema */
+        $schema = $config->getDatabaseConfig()['schema'];
+        $this->schema = $schema;
     }
 
     /**

@@ -13,7 +13,16 @@ env:
     DOCKERHUB_TOKEN: '${{ secrets.DOCKERHUB_TOKEN }}'
 
     BQ_DATASET: WORKSPACE_928415912
-    BQ_CREDENTIALS: '${{ secrets.BQ_CREDENTIALS }}'
+    BQ_CREDENTIALS_TYPE: service_account
+    BQ_CREDENTIALS_PROJECT_ID: sapi-9452
+    BQ_CREDENTIALS_PRIVATE_KEY_ID: '${{ secrets.BQ_CREDENTIALS_PRIVATE_KEY_ID }}'
+    BQ_CREDENTIALS_PRIVATE_KEY: '${{ secrets.BQ_CREDENTIALS_PRIVATE_KEY }}'
+    BQ_CREDENTIALS_CLIENT_EMAIL: '${{ secrets.BQ_CREDENTIALS_CLIENT_EMAIL }}'
+    BQ_CREDENTIALS_CLIENT_ID: '${{ secrets.BQ_CREDENTIALS_CLIENT_ID }}'
+    BQ_CREDENTIALS_AUTH_URI: https://accounts.google.com/o/oauth2/auth
+    BQ_CREDENTIALS_TOKEN_URI: https://oauth2.googleapis.com/token
+    BQ_CREDENTIALS_AUTH_PROVIDER_X509_CERT_URL: https://www.googleapis.com/oauth2/v1/certs
+    BQ_CREDENTIALS_CLIENT_X509_CERT_URL: https://www.googleapis.com/robot/v1/metadata/x509/sapi-workspace-928415912%40sapi-9452.iam.gserviceaccount.com
 
     KBC_STORAGE_TOKEN: '${{ secrets.KBC_STORAGE_TOKEN }}'
     KBC_TEST_PROJECT_URL: ''
@@ -78,7 +87,20 @@ jobs:
                     tag_as_latest: true
             -
                 name: 'Run tests'
-                run: 'docker run -e BQ_CREDENTIALS -e BQ_DATASET ${{env.APP_IMAGE}} composer ci'
+                run: | 
+                    docker run \
+                    -e BQ_DATASET \
+                    -e BQ_CREDENTIALS_TYPE \
+                    -e BQ_CREDENTIALS_PROJECT_ID \
+                    -e BQ_CREDENTIALS_PRIVATE_KEY_ID \
+                    -e BQ_CREDENTIALS_PRIVATE_KEY \
+                    -e BQ_CREDENTIALS_CLIENT_EMAIL \
+                    -e BQ_CREDENTIALS_CLIENT_ID \
+                    -e BQ_CREDENTIALS_AUTH_URI \
+                    -e BQ_CREDENTIALS_TOKEN_URI \
+                    -e BQ_CREDENTIALS_AUTH_PROVIDER_X509_CERT_URL \
+                    -e BQ_CREDENTIALS_CLIENT_X509_CERT_URL \
+                    ${{env.APP_IMAGE}} composer ci
     tests-in-kbc:
         needs: build
         runs-on: ubuntu-latest
