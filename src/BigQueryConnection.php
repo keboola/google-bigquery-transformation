@@ -7,9 +7,8 @@ namespace BigQueryTransformation;
 use Google\Cloud\BigQuery\BigQueryClient;
 use Google\Cloud\BigQuery\Dataset;
 use Google\Cloud\BigQuery\QueryResults;
-use Keboola\Component\BaseComponent;
 
-class BigQueryConnection extends BaseComponent
+class BigQueryConnection
 {
     private BigQueryClient $client;
     private Dataset $dataset;
