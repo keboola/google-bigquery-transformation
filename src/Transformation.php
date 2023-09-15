@@ -17,7 +17,7 @@ use Throwable;
 
 class Transformation
 {
-
+    private const ABORT_TRANSFORMATION = 'ABORT_TRANSFORMATION';
     private BigQueryConnection $connection;
     private LoggerInterface $logger;
     private string $schema;
@@ -165,6 +165,11 @@ class Transformation
                 );
                 throw new UserException($message, 0, $exception);
             }
+
+            $pattern = sprintf('/%s/i', preg_quote(self::ABORT_TRANSFORMATION, '/'));
+            if (preg_match($pattern, $uncommentedQuery)) {
+                $this->checkUserTermination();
+            }
         }
     }
 
@@ -218,6 +223,29 @@ WHERE table_name = "%s"', $tableName));
                 false,
                 new ColumnCollection($columns),
                 []
+            );
+        }
+    }
+
+    public function declareAbortVariable(): void
+    {
+        $this->connection->executeQuery(
+            sprintf('DECLARE %s STRING DEFAULT \'\'', self::ABORT_TRANSFORMATION),
+        );
+    }
+
+    /**
+     * @throws \Keboola\Component\UserException|\Google\Cloud\Core\Exception\GoogleException
+     */
+    protected function checkUserTermination(): void
+    {
+        $this->logger->info('Checking user termination');
+        $result = $this->connection->executeQuery(sprintf('SELECT %s', self::ABORT_TRANSFORMATION));
+        /** @var array<0, array<'ABORT_TRANSFORMATION', string>> $result */
+        $result = iterator_to_array($result->rows());
+        if ($result[0][self::ABORT_TRANSFORMATION] !== '') {
+            throw new UserException(
+                sprintf('Transformation aborted with message "%s"', $result[0][self::ABORT_TRANSFORMATION])
             );
         }
     }
