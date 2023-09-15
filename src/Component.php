@@ -21,6 +21,7 @@ class Component extends BaseComponent
         $config = $this->getConfig();
 
         $transformation = new Transformation($config, $this->getLogger());
+        $transformation->declareAbortVariable();
         $transformation->processBlocks($config->getBlocks());
 
         /** @var array<array{source: string}> $tables */
