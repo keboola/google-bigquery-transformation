@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BigQueryTransformation;
 
+use BigQueryTransformation\Exception\TransformationAbortedException;
 use Keboola\Component\BaseComponent;
 use Keboola\Component\Manifest\ManifestManager;
 
@@ -14,6 +15,7 @@ class Component extends BaseComponent
      * @throws \Keboola\Component\Manifest\ManifestManager\Options\OptionsValidationException
      * @throws \Keboola\Component\UserException
      * @throws \Google\Cloud\Core\Exception\GoogleException
+     * @throws \BigQueryTransformation\Exception\TransformationAbortedException
      */
     protected function run(): void
     {
@@ -22,14 +24,14 @@ class Component extends BaseComponent
 
         $transformation = new Transformation($config, $this->getLogger());
         $transformation->declareAbortVariable();
-        $transformation->processBlocks($config->getBlocks());
+        try {
+            $transformation->processBlocks($config->getBlocks());
+        } catch (TransformationAbortedException $e) {
+            $this->generateManifest($config, $transformation, true);
+            throw $e;
+        }
 
-        /** @var array<array{source: string}> $tables */
-        $tables = $config->getExpectedOutputTables();
-        $transformation->createManifestMetadata(
-            $tables,
-            new ManifestManager($this->getDataDir())
-        );
+        $this->generateManifest($config, $transformation);
     }
 
     protected function getConfigClass(): string
@@ -40,5 +42,24 @@ class Component extends BaseComponent
     protected function getConfigDefinitionClass(): string
     {
         return ConfigDefinition::class;
+    }
+
+    /**
+     * @throws \Google\Cloud\Core\Exception\GoogleException
+     * @throws \Keboola\Component\Manifest\ManifestManager\Options\OptionsValidationException
+     * @throws \Keboola\Component\UserException
+     */
+    protected function generateManifest(
+        Config $config,
+        Transformation $transformation,
+        bool $transformationFailed = false
+    ): void {
+        /** @var array<array{'source': string, 'write_always'?: bool}> $tables */
+        $tables = $config->getExpectedOutputTables();
+        $transformation->createManifestMetadata(
+            $tables,
+            new ManifestManager($this->getDataDir()),
+            $transformationFailed
+        );
     }
 }

@@ -1,0 +1,17 @@
+Processing block "first block".
+Processing code "first code".
+Running query "DROP TABLE IF EXISTS `accounts`;".
+Running query "CREATE TABLE `accounts` (account_id STRING);".
+Running query "INSERT INTO `accounts` VALUES ('123');".
+Processing code "second code".
+Running query "DROP TABLE IF EXISTS `accounts2`;".
+Running query "CREATE TABLE `accounts2` (account_id STRING);".
+Running query "INSERT INTO `accounts2` VALUES ('123');".
+Processing code "third code".
+Running query "DROP TABLE IF EXISTS `accounts3`;".
+Running query "CREATE TABLE `accounts3` (account_id STRING);".
+Running query "INSERT INTO `accounts3` VALUES ('123');".
+Processing code "abort code".
+Running query "SET ABORT_TRANSFORMATION='Abort me please'".
+Checking user termination
+
