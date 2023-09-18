@@ -16,6 +16,7 @@ class ConfigTest extends TestCase
     {
         $configArray = [
             'parameters' => [
+                'query_timeout' => 10,
                 'blocks' => [
                     [
                         'name' => 'first block',

@@ -27,7 +27,7 @@ class Transformation
      */
     public function __construct(Config $config, LoggerInterface $logger)
     {
-        $this->connection = new BigQueryConnection($config->getDatabaseConfig());
+        $this->connection = new BigQueryConnection($config->getDatabaseConfig(), $config->getQueryTimeout());
         $this->logger = $logger;
         /** @var string $schema */
         $schema = $config->getDatabaseConfig()['schema'];

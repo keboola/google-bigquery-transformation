@@ -10,6 +10,7 @@ Transformation component which runs SQL queries on BigQuery.
         - `credentials` object (required)
             - ...
 - `parameters`
+    - `query_timeout` integer (optional, default `0`): timeout for a request in seconds, `0` means no timeout
     - `blocks` array (required): list of blocks
         - `name` string (required): name of the block
         - `codes` array (required): list of codes
