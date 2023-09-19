@@ -7,6 +7,7 @@ namespace BigQueryTransformation\Tests;
 use BigQueryTransformation\BigQueryConnection;
 use BigQueryTransformation\Traits\GetEnvVarsTrait;
 use Google\Cloud\Core\Exception\ServiceException;
+use Keboola\Component\UserException;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
@@ -36,5 +37,30 @@ class ConnectionTest extends TestCase
 
         $connection = new BigQueryConnection($configArray);
         $connection->executeQuery('SELECT 1');
+    }
+
+    public function testQueryTimeout(): void
+    {
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage('Query exceeded the maximum execution time');
+
+        $connection = new BigQueryConnection($this->getEnvVars(), 1);
+
+        // long-running query
+        $connection->executeQuery(
+            'WITH RECURSIVE counter AS (
+                      SELECT 1 AS n
+                      UNION ALL
+                      SELECT n+1 FROM counter WHERE n < 10000
+                    )
+                    
+                    SELECT 
+                      a.n AS val1, 
+                      b.n AS val2
+                    FROM 
+                      counter a 
+                    CROSS JOIN 
+                      counter b;'
+        );
     }
 }

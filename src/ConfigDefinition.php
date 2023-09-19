@@ -17,6 +17,9 @@ class ConfigDefinition extends BaseConfigDefinition
         $parametersNode
             ->isRequired()
             ->children()
+                ->integerNode('query_timeout')
+                    ->defaultValue(0)
+                ->end()
                 ->arrayNode('blocks')
                     ->isRequired()
                     ->prototype('array')

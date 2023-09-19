@@ -10,6 +10,11 @@ use Keboola\Component\Config\BaseConfig;
 
 class Config extends BaseConfig
 {
+    public function getQueryTimeout(): int
+    {
+        return $this->getIntValue(['parameters', 'query_timeout']);
+    }
+
     /**
      * @return array<array{name: string, codes: array<array{name: string, script: array<int, string>}>}>
      */
