@@ -24,6 +24,7 @@ class Component extends BaseComponent
 
         $transformation = new Transformation($config, $this->getLogger());
         $transformation->declareAbortVariable();
+        $transformation->declareEnvVars();
         try {
             $transformation->processBlocks($config->getBlocks());
         } catch (TransformationAbortedException $e) {

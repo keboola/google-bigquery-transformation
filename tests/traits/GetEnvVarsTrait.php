@@ -42,4 +42,11 @@ trait GetEnvVarsTrait
 
         return ['schema' => $dataset, 'credentials' => $credentials];
     }
+
+    public function getRunIdEnvVar(): string
+    {
+        $runId = getenv('KBC_RUNID');
+        $this->assertNotFalse($runId, 'KBC_RUNID env var is not set');
+        return $runId;
+    }
 }

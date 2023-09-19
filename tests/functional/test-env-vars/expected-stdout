@@ -1,0 +1,8 @@
+Processing block "Block 1".
+Processing code "Code 1".
+Running query "DROP TABLE IF EXISTS `envvars`".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
+Running query "CREATE TABLE `envvars` (name string, value string)".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
+Running query "INSERT INTO `envvars` VALUES ('KBC_RUNID', (SELECT KBC_RUNID))".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults

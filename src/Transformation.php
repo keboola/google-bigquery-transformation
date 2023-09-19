@@ -246,6 +246,31 @@ WHERE table_name = "%s"', $tableName));
         );
     }
 
+    public function declareEnvVars(): void
+    {
+        $kbcEnvVars = [
+            'KBC_RUNID',
+            'KBC_PROJECTID',
+            'KBC_STACKID',
+            'KBC_CONFIGID',
+            'KBC_COMPONENTID',
+            'KBC_CONFIGROWID',
+            'KBC_BRANCHID',
+        ];
+
+        $queries = [];
+        foreach ($kbcEnvVars as $kbcEnvVar) {
+            $value = getenv($kbcEnvVar);
+            if ($value) {
+                $queries[] = sprintf('DECLARE %s STRING DEFAULT \'%s\';', $kbcEnvVar, $value);
+            }
+        }
+
+        $this->connection->executeQuery(
+            implode("\n", $queries),
+        );
+    }
+
     /**
      * @throws \Google\Cloud\Core\Exception\GoogleException
      * @throws \BigQueryTransformation\Exception\TransformationAbortedException

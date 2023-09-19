@@ -39,7 +39,7 @@ class DatadirTest extends DatadirTestCase
     {
         $tempDatadir = $this->getTempDatadir($specification);
 
-        $process = $this->runScript($tempDatadir->getTmpFolder());
+        $process = $this->runScript($tempDatadir->getTmpFolder(), $this->getRunIdEnvVar());
 
         $this->assertMatchesSpecification($specification, $process, $tempDatadir->getTmpFolder());
 
