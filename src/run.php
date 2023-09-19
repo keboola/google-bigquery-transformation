@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use BigQueryTransformation\Component;
+use Keboola\CommonExceptions\UserExceptionInterface;
 use Keboola\Component\Logger;
-use Keboola\Component\UserException;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -13,7 +13,7 @@ try {
     $app = new Component($logger);
     $app->execute();
     exit(0);
-} catch (UserException $e) {
+} catch (UserExceptionInterface $e) {
     $logger->error($e->getMessage());
     exit(1);
 } catch (Throwable $e) {

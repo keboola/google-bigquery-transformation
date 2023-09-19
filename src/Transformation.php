@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BigQueryTransformation;
 
 use BigQueryTransformation\Exception\MissingTableException;
+use BigQueryTransformation\Exception\TransformationAbortedException;
 use Keboola\Component\Manifest\ManifestManager;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTableManifestOptions;
 use Keboola\Component\UserException;
@@ -35,14 +36,17 @@ class Transformation
     }
 
     /**
-     * @param array<array{source: string}> $tableNames
+     * @param array<array{'source': string, 'write_always'?: bool}> $tableNames
      * @throws \Keboola\Component\Manifest\ManifestManager\Options\OptionsValidationException
      * @throws \Google\Cloud\Core\Exception\GoogleException
      * @throws \Keboola\Component\UserException
      */
-    public function createManifestMetadata(array $tableNames, ManifestManager $manifestManager): void
-    {
-        $tableStructures = $this->getTables($tableNames);
+    public function createManifestMetadata(
+        array $tableNames,
+        ManifestManager $manifestManager,
+        bool $transformationFailed
+    ): void {
+        $tableStructures = $this->getTables($tableNames, $transformationFailed);
         foreach ($tableStructures as $tableDef) {
             $columnsMetadata = (object) [];
             /** @var \Keboola\TableBackendUtils\Column\Bigquery\BigqueryColumn $column */
@@ -66,21 +70,25 @@ class Transformation
     }
 
     /**
-     * @param array<array{source: string}> $tables
+     * @param array<array{'source': string, 'write_always'?: bool}> $tables
      * @return \Keboola\TableBackendUtils\Table\Bigquery\BigqueryTableDefinition[]
      * @throws \Google\Cloud\Core\Exception\GoogleException
      * @throws \Keboola\Component\UserException
      */
 
-    private function getTables(array $tables): array
+    private function getTables(array $tables, bool $transformationFailed): array
     {
         if (count($tables) === 0) {
             return [];
         }
 
-        $sourceTables = array_map(function ($item) {
-            return $item['source'];
-        }, $tables);
+        if ($transformationFailed) {
+            $tables = array_filter($tables, function ($item) {
+                return isset($item['write_always']) && $item['write_always'] === true;
+            });
+        }
+
+        $sourceTables = array_column($tables, 'source');
 
         $defs = [];
         $missingTables = [];
@@ -235,7 +243,9 @@ WHERE table_name = "%s"', $tableName));
     }
 
     /**
-     * @throws \Keboola\Component\UserException|\Google\Cloud\Core\Exception\GoogleException
+     * @throws \Google\Cloud\Core\Exception\GoogleException
+     * @throws \BigQueryTransformation\Exception\TransformationAbortedException
+     * @throws \Keboola\Component\UserException
      */
     protected function checkUserTermination(): void
     {
@@ -244,7 +254,7 @@ WHERE table_name = "%s"', $tableName));
         /** @var array<0, array<'ABORT_TRANSFORMATION', string>> $result */
         $result = iterator_to_array($result->rows());
         if ($result[0][self::ABORT_TRANSFORMATION] !== '') {
-            throw new UserException(
+            throw new TransformationAbortedException(
                 sprintf('Transformation aborted with message "%s"', $result[0][self::ABORT_TRANSFORMATION])
             );
         }

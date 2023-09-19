@@ -1,0 +1,78 @@
+{
+  "authorization": {
+    "workspace": {
+      "schema": "%env(string:BQ_DATASET)%",
+      "credentials": {
+        "type": "%env(string:BQ_CREDENTIALS_TYPE)%",
+        "project_id": "%env(string:BQ_CREDENTIALS_PROJECT_ID)%",
+        "private_key_id": "%env(string:BQ_CREDENTIALS_PRIVATE_KEY_ID)%",
+        "private_key": "%env(string:BQ_CREDENTIALS_PRIVATE_KEY)%",
+        "client_email": "%env(string:BQ_CREDENTIALS_CLIENT_EMAIL)%",
+        "client_id": "%env(string:BQ_CREDENTIALS_CLIENT_ID)%",
+        "auth_uri": "%env(string:BQ_CREDENTIALS_AUTH_URI)%",
+        "token_uri": "%env(string:BQ_CREDENTIALS_TOKEN_URI)%",
+        "auth_provider_x509_cert_url": "%env(string:BQ_CREDENTIALS_AUTH_PROVIDER_X509_CERT_URL)%",
+        "client_x509_cert_url": "%env(string:BQ_CREDENTIALS_CLIENT_X509_CERT_URL)%"
+      }
+    }
+  },
+  "storage": {
+    "output": {
+      "tables": [
+        {
+          "source": "accounts",
+          "destination": "out.c-my.accounts",
+          "write_always": true
+        },
+        {
+          "source": "accounts2",
+          "destination": "out.c-my.accounts2",
+          "write_always": false
+        },
+        {
+          "source": "accounts3",
+          "destination": "out.c-my.accounts3"
+        }
+      ]
+    }
+  },
+  "parameters": {
+    "blocks": [
+      {
+        "name": "first block",
+        "codes": [
+          {
+            "name": "first code",
+            "script": [
+              "DROP TABLE IF EXISTS `accounts`;",
+              "CREATE TABLE `accounts` (account_id STRING);",
+              "INSERT INTO `accounts` VALUES ('123');"
+            ]
+          },
+          {
+            "name": "second code",
+            "script": [
+              "DROP TABLE IF EXISTS `accounts2`;",
+              "CREATE TABLE `accounts2` (account_id STRING);",
+              "INSERT INTO `accounts2` VALUES ('123');"
+            ]
+          },
+          {
+            "name": "third code",
+            "script": [
+              "DROP TABLE IF EXISTS `accounts3`;",
+              "CREATE TABLE `accounts3` (account_id STRING);",
+              "INSERT INTO `accounts3` VALUES ('123');"
+            ]
+          },
+          {
+            "name": "abort code",
+            "script": [
+              "SET ABORT_TRANSFORMATION='Abort me please'"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

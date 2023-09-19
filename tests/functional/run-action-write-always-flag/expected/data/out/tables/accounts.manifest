@@ -1,0 +1,1 @@
+{"columns":["account_id"],"metadata":[{"key":"KBC.name","value":"accounts"}],"column_metadata":{"account_id":[{"key":"KBC.datatype.type","value":"STRING"},{"key":"KBC.datatype.nullable","value":true},{"key":"KBC.datatype.basetype","value":"STRING"}]}}
