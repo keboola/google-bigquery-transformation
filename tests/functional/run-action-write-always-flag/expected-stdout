@@ -1,17 +1,27 @@
 Processing block "first block".
 Processing code "first code".
 Running query "DROP TABLE IF EXISTS `accounts`;".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
 Running query "CREATE TABLE `accounts` (account_id STRING);".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
 Running query "INSERT INTO `accounts` VALUES ('123');".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
 Processing code "second code".
 Running query "DROP TABLE IF EXISTS `accounts2`;".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
 Running query "CREATE TABLE `accounts2` (account_id STRING);".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
 Running query "INSERT INTO `accounts2` VALUES ('123');".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
 Processing code "third code".
 Running query "DROP TABLE IF EXISTS `accounts3`;".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
 Running query "CREATE TABLE `accounts3` (account_id STRING);".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
 Running query "INSERT INTO `accounts3` VALUES ('123');".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
 Processing code "abort code".
 Running query "SET ABORT_TRANSFORMATION='Abort me please'".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
 Checking user termination
 

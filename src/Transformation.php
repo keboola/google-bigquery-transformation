@@ -158,7 +158,11 @@ class Transformation
 
             $this->logger->info(sprintf('Running query "%s".', $this->queryExcerpt($query)));
             try {
-                $this->connection->executeQuery($uncommentedQuery);
+                $result = $this->connection->executeQuery($uncommentedQuery);
+                $id = $result->identity();
+                $resultUrlLog = 'Query results URL: ' .
+                    'https://console.cloud.google.com/bigquery?project=%s&j=bq:%s:%s&page=queryresults';
+                $this->logger->info(sprintf($resultUrlLog, $id['projectId'], $id['location'], $id['jobId']));
             } catch (Throwable $exception) {
                 $bqMessage = null;
                 $messageArray = json_decode($exception->getMessage(), true);

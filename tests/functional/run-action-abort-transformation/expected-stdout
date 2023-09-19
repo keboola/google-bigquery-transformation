@@ -1,5 +1,6 @@
 Processing block "Block 1".
 Processing code "Code 1".
 Running query "SET ABORT_TRANSFORMATION = 'Abort me please'".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
 Checking user termination
 

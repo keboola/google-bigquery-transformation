@@ -1,4 +1,7 @@
 Processing block "Block 1".
 Processing code "Code 1".
 Running query "CREATE TABLE IF NOT EXISTS `example` (name STRING, usercity STRING);".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
 Running query "INSERT INTO `example` VALUES ('test example name', 'Prague'), ('test example name 2', 'Brno'), ('test example name 3', 'Ostrava')".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
+
