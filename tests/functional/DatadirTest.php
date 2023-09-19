@@ -22,7 +22,7 @@ class DatadirTest extends DatadirTestCase
     public function __construct(?string $name = null, array $data = [], int|string $dataName = '')
     {
         parent::__construct($name, $data, $dataName);
-        $this->connection = new BigQueryConnection($this->getEnvVars());
+        $this->connection = new BigQueryConnection($this->getEnvVars(), $this->getRunIdEnvVar());
     }
 
     public function setUp(): void

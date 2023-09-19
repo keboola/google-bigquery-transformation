@@ -18,13 +18,11 @@ class ConnectionTest extends TestCase
     public function testConnection(): void
     {
         try {
-            $connection = new BigQueryConnection($this->getEnvVars());
+            $connection = new BigQueryConnection($this->getEnvVars(), $this->getRunIdEnvVar());
             $connection->executeQuery('SELECT 1');
         } catch (Throwable $e) {
             $this->fail($e->getMessage());
         }
-
-        $this->expectNotToPerformAssertions();
     }
 
     public function testConnectionWrongCredentials(): void
@@ -35,7 +33,7 @@ class ConnectionTest extends TestCase
         $this->expectException(ServiceException::class);
         $this->expectExceptionMessage('json key is missing the private_key field');
 
-        $connection = new BigQueryConnection($configArray);
+        $connection = new BigQueryConnection($configArray, $this->getRunIdEnvVar());
         $connection->executeQuery('SELECT 1');
     }
 
@@ -44,7 +42,7 @@ class ConnectionTest extends TestCase
         $this->expectException(UserException::class);
         $this->expectExceptionMessage('Query exceeded the maximum execution time');
 
-        $connection = new BigQueryConnection($this->getEnvVars(), 1);
+        $connection = new BigQueryConnection($this->getEnvVars(), $this->getRunIdEnvVar(), 1);
 
         // long-running query
         $connection->executeQuery(

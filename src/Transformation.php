@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BigQueryTransformation;
 
+use BigQueryTransformation\Exception\ApplicationException;
 use BigQueryTransformation\Exception\MissingTableException;
 use BigQueryTransformation\Exception\TransformationAbortedException;
 use Keboola\Component\Manifest\ManifestManager;
@@ -28,7 +29,11 @@ class Transformation
      */
     public function __construct(Config $config, LoggerInterface $logger)
     {
-        $this->connection = new BigQueryConnection($config->getDatabaseConfig(), $config->getQueryTimeout());
+        $runId = getenv('KBC_RUNID');
+        if (!$runId) {
+            throw new ApplicationException('Missing KBC_RUNID environment variable');
+        }
+        $this->connection = new BigQueryConnection($config->getDatabaseConfig(), $runId, $config->getQueryTimeout());
         $this->logger = $logger;
         /** @var string $schema */
         $schema = $config->getDatabaseConfig()['schema'];
