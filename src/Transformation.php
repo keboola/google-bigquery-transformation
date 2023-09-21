@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BigQueryTransformation;
 
+use BigQueryTransformation\Exception\ApplicationException;
 use BigQueryTransformation\Exception\MissingTableException;
 use BigQueryTransformation\Exception\TransformationAbortedException;
 use Keboola\Component\Manifest\ManifestManager;
@@ -28,7 +29,11 @@ class Transformation
      */
     public function __construct(Config $config, LoggerInterface $logger)
     {
-        $this->connection = new BigQueryConnection($config->getDatabaseConfig(), $config->getQueryTimeout());
+        $runId = getenv('KBC_RUNID');
+        if (!$runId) {
+            throw new ApplicationException('Missing KBC_RUNID environment variable');
+        }
+        $this->connection = new BigQueryConnection($config->getDatabaseConfig(), $runId, $config->getQueryTimeout());
         $this->logger = $logger;
         /** @var string $schema */
         $schema = $config->getDatabaseConfig()['schema'];
@@ -158,7 +163,11 @@ class Transformation
 
             $this->logger->info(sprintf('Running query "%s".', $this->queryExcerpt($query)));
             try {
-                $this->connection->executeQuery($uncommentedQuery);
+                $result = $this->connection->executeQuery($uncommentedQuery);
+                $id = $result->identity();
+                $resultUrlLog = 'Query results URL: ' .
+                    'https://console.cloud.google.com/bigquery?project=%s&j=bq:%s:%s&page=queryresults';
+                $this->logger->info(sprintf($resultUrlLog, $id['projectId'], $id['location'], $id['jobId']));
             } catch (Throwable $exception) {
                 $bqMessage = null;
                 $messageArray = json_decode($exception->getMessage(), true);
@@ -239,6 +248,31 @@ WHERE table_name = "%s"', $tableName));
     {
         $this->connection->executeQuery(
             sprintf('DECLARE %s STRING DEFAULT \'\'', self::ABORT_TRANSFORMATION),
+        );
+    }
+
+    public function declareEnvVars(): void
+    {
+        $kbcEnvVars = [
+            'KBC_RUNID',
+            'KBC_PROJECTID',
+            'KBC_STACKID',
+            'KBC_CONFIGID',
+            'KBC_COMPONENTID',
+            'KBC_CONFIGROWID',
+            'KBC_BRANCHID',
+        ];
+
+        $queries = [];
+        foreach ($kbcEnvVars as $kbcEnvVar) {
+            $value = getenv($kbcEnvVar);
+            if ($value) {
+                $queries[] = sprintf('DECLARE %s STRING DEFAULT \'%s\';', $kbcEnvVar, $value);
+            }
+        }
+
+        $this->connection->executeQuery(
+            implode("\n", $queries),
         );
     }
 

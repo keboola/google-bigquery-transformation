@@ -24,6 +24,7 @@ env:
     BQ_CREDENTIALS_AUTH_PROVIDER_X509_CERT_URL: https://www.googleapis.com/oauth2/v1/certs
     BQ_CREDENTIALS_CLIENT_X509_CERT_URL: https://www.googleapis.com/robot/v1/metadata/x509/sapi-workspace-928415912%40sapi-9452.iam.gserviceaccount.com
 
+    KBC_RUNID: '123456789'
     KBC_STORAGE_TOKEN: '${{ secrets.KBC_STORAGE_TOKEN }}'
     KBC_TEST_PROJECT_URL: ''
     KBC_TEST_PROJECT_CONFIGS: ''
@@ -100,6 +101,7 @@ jobs:
                     -e BQ_CREDENTIALS_TOKEN_URI \
                     -e BQ_CREDENTIALS_AUTH_PROVIDER_X509_CERT_URL \
                     -e BQ_CREDENTIALS_CLIENT_X509_CERT_URL \
+                    -e KBC_RUNID \
                     ${{env.APP_IMAGE}} composer ci
     tests-in-kbc:
         needs: build

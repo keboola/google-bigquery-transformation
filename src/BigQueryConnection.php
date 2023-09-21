@@ -17,11 +17,12 @@ class BigQueryConnection
     private BigQueryClient $client;
     private Dataset $dataset;
     private Session $session;
+    private string $runId;
 
     /**
      * @param array<string, string|array<string, string>> $databaseConfig
      */
-    public function __construct(array $databaseConfig, int $queryTimeout = 0)
+    public function __construct(array $databaseConfig, string $runId, int $queryTimeout = 0)
     {
         $this->client = new BigQueryClient([
             'keyFile' => $databaseConfig['credentials'],
@@ -31,6 +32,7 @@ class BigQueryConnection
         /** @var string $schema */
         $schema = $databaseConfig['schema'];
         $this->dataset = $this->client->dataset($schema);
+        $this->runId = $runId;
     }
 
     /**
@@ -39,10 +41,11 @@ class BigQueryConnection
      */
     public function executeQuery(string $query): QueryResults
     {
+        $queryOptions = $this->session->getAsQueryOptions();
+        $queryOptions['configuration']['labels'] = ['run_id' => $this->runId];
+
         try {
-            return $this->client->runQuery(
-                $this->client->query($query, $this->session->getAsQueryOptions())->defaultDataset($this->dataset)
-            );
+            return $this->client->runQuery($this->client->query($query, $queryOptions)->defaultDataset($this->dataset));
         } catch (ServiceException $e) {
             if (str_contains($e->getMessage(), 'Operation timed out')) {
                 throw new UserException('Query exceeded the maximum execution time');
