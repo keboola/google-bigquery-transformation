@@ -46,6 +46,7 @@ class BigQueryConnection
     ) {
         $this->client = new BigQueryClient([
             'keyFile' => $databaseConfig['credentials'],
+            'requestTimeout' => $queryTimeout,
             'restRetryFunction' => function () {
                 return function (Throwable $ex) {
                     $statusCode = $ex->getCode();
@@ -124,6 +125,9 @@ class BigQueryConnection
             return $this->client->runQuery($this->client->query($query, $queryOptions)->defaultDataset($this->dataset));
         } catch (ServiceException $e) {
             if (str_contains($e->getMessage(), 'Job timed out after')) {
+                throw new UserException('Query exceeded the maximum execution time');
+            }
+            if (str_contains($e->getMessage(), 'Operation timed out')) {
                 throw new UserException('Query exceeded the maximum execution time');
             }
             throw $e;
