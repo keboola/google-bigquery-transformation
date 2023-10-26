@@ -99,6 +99,7 @@ class BigQueryConnection
                     return false;
                 };
             },
+            'retries' => 20,
         ]);
         $this->session = (new SessionFactory($this->client))->createSession();
         /** @var string $schema */
