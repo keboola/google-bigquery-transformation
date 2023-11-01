@@ -33,8 +33,8 @@
         }
     },
     "scripts": {
-        "tests-phpunit": "phpunit",
-        "tests-datadir": "phpunit tests/functional",
+        "tests-phpunit": "phpunit --debug --verbose",
+        "tests-datadir": "phpunit tests/functional  --debug --verbose",
         "tests": [
             "@tests-phpunit",
             "@tests-datadir"
