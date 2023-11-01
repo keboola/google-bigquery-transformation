@@ -5,13 +5,13 @@
     "require": {
         "php": "^8.2",
         "ext-odbc": "*",
+        "cweagans/composer-patches": "^1.7",
         "google/cloud-bigquery": "^1.23",
         "jdorn/sql-formatter": "^1.2",
         "keboola/php-component": "^9.0",
         "keboola/table-backend-utils": "^2.0"
     },
     "require-dev": {
-        "cweagans/composer-patches": "^1.7",
         "keboola/coding-standard": ">=7.0.2",
         "keboola/datadir-tests": "^5.3",
         "keboola/php-temp": "^2.0",
