@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace BigQueryTransformation;
 
+use BigQueryTransformation\Client\Retry;
 use Google\Cloud\BigQuery\BigQueryClient;
 use Google\Cloud\BigQuery\Dataset;
 use Google\Cloud\BigQuery\QueryResults;
 use Google\Cloud\Core\ClientTrait;
 use Google\Cloud\Core\Exception\ServiceException;
-use GuzzleHttp\Exception\RequestException;
-use InvalidArgumentException;
 use Keboola\Component\UserException;
 use Keboola\TableBackendUtils\Connection\Bigquery\Session;
 use Keboola\TableBackendUtils\Connection\Bigquery\SessionFactory;
@@ -19,14 +18,6 @@ use Throwable;
 class BigQueryConnection
 {
     use ClientTrait;
-
-    private const RETRY_MISSING_CREATE_JOB = 'bigquery.jobs.create';
-    private const RETRY_ON_REASON = [
-        'rateLimitExceeded',
-        'userRateLimitExceeded',
-        'backendError',
-        'jobRateLimitExceeded',
-    ];
 
     private BigQueryClient $client;
 
@@ -47,57 +38,16 @@ class BigQueryConnection
         $this->client = new BigQueryClient([
             'keyFile' => $databaseConfig['credentials'],
             'restRetryFunction' => function () {
-                return function (Throwable $ex) {
-                    $statusCode = $ex->getCode();
-
-                    if (in_array($statusCode, [429, 500, 503,])) {
-                        return true;
+                // BigQuery client sometimes calls directly restRetryFunction with exception as first argument
+                // But in other cases it expects to return callable which accepts exception as first argument
+                $argsNum = func_num_args();
+                if ($argsNum === 2) {
+                    $ex = func_get_arg(0);
+                    if ($ex instanceof Throwable) {
+                        return Retry::shouldRetryException($ex);
                     }
-                    if ($statusCode >= 200 && $statusCode < 300) {
-                        return false;
-                    }
-
-                    $message = $ex->getMessage();
-                    if ($ex instanceof RequestException && $ex->hasResponse()) {
-                        $message = (string) $ex->getResponse()?->getBody();
-                    }
-
-                    try {
-                        $message = $this->jsonDecode(
-                            $message,
-                            true
-                        );
-                    } catch (InvalidArgumentException $ex) {
-                        return false;
-                    }
-
-                    if (!is_array($message)) {
-                        return false;
-                    }
-
-                    if (!array_key_exists('error', $message)) {
-                        return false;
-                    }
-
-                    if (!array_key_exists('errors', $message['error'])) {
-                        return false;
-                    }
-
-                    if (!is_array($message['error']['errors'])) {
-                        return false;
-                    }
-
-                    foreach ($message['error']['errors'] as $error) {
-                        if (in_array($error['reason'], self::RETRY_ON_REASON, false)) {
-                            return true;
-                        }
-                        if (str_contains($error['error']['errors'][0]['message'], self::RETRY_MISSING_CREATE_JOB)) {
-                            return true;
-                        }
-                    }
-
-                    return false;
-                };
+                }
+                return [Retry::class, 'shouldRetryException'];
             },
             'retries' => 30,
         ]);

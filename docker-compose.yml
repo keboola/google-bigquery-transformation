@@ -1,7 +1,8 @@
 version: '3'
 services:
-  dev:
-    build: .
+  production: &prod
+    build:
+      context: .
     environment:
       - BQ_DATASET
       - BQ_CREDENTIALS_TYPE
@@ -15,6 +16,15 @@ services:
       - BQ_CREDENTIALS_AUTH_PROVIDER_X509_CERT_URL
       - BQ_CREDENTIALS_CLIENT_X509_CERT_URL
       - KBC_RUNID
+  dev: &dev
+    <<: *prod
+    image: keboola/google-bigquery-transformation
+    volumes:
+      - ./:/code
+      - ./data:/data
+  dev-xdebug:
+    <<: *dev
+    build: docker/xdebug
     volumes:
       - ./:/code
       - ./data:/data
