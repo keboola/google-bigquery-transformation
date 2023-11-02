@@ -1,0 +1,12 @@
+--- src/RetryDeciderTrait.php	2022-11-01 21:21:07.000000000 +0100
++++ src/RetryDeciderTrait.php	2023-11-02 07:03:08.505644836 +0100
+@@ -80,6 +80,9 @@
+             }
+
+             if (!isset($message['error']['errors'])) {
++                if (isset($message['error']) && $message['error'] == 'invalid_grant') {
++                    return true;
++                }
+                 return false;
+             }
+

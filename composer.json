@@ -67,6 +67,9 @@
         "patches": {
             "google/cloud-bigquery": [
                 "patches/google-cloud-bigquery-JobWaitTrait.php.patch"
+            ],
+            "google/cloud-core": [
+                "patches/google-cloud-core-RetryDeciderTrait.php.patch"
             ]
         }
     }
