@@ -68,6 +68,9 @@
             "google/cloud-bigquery": [
                 "patches/google-cloud-bigquery-JobWaitTrait.php.patch"
             ],
+            "google/cloud-core": [
+                "patches/google-cloud-core-RetryDeciderTrait.php.patch"
+            ],
             "jdorn/sql-formatter": [
                 "patches/jdorn-sql-formatter-SqlFormatter.php.patch"
             ]
