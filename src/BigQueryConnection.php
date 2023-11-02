@@ -76,6 +76,9 @@ class BigQueryConnection
             if (str_contains($e->getMessage(), 'Job timed out after')) {
                 throw new UserException('Query exceeded the maximum execution time');
             }
+            if (str_contains($e->getMessage(), 'Job did not complete within the allowed number of retries.')) {
+                throw new UserException('Job did not complete within the allowed number of retries.');
+            }
             throw $e;
         }
     }

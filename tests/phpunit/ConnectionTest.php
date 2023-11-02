@@ -6,6 +6,7 @@ namespace BigQueryTransformation\Tests;
 
 use BigQueryTransformation\BigQueryConnection;
 use BigQueryTransformation\Traits\GetEnvVarsTrait;
+use Google\Cloud\BigQuery\Exception\JobException;
 use Google\Cloud\Core\Exception\ServiceException;
 use Keboola\Component\UserException;
 use PHPUnit\Framework\TestCase;
@@ -66,8 +67,8 @@ class ConnectionTest extends TestCase
 
     public function testRecursiveQueryWithoutTimeout(): void
     {
-        $this->expectException(UserException::class);
-        $this->expectExceptionMessage('Query exceeded the maximum execution time');
+        $this->expectException(JobException::class);
+        $this->expectExceptionMessage('Job did not complete within the allowed number of retries.');
 
         $connection = new BigQueryConnection($this->getEnvVars(), $this->getRunIdEnvVar());
 
