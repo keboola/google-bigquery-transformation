@@ -1,0 +1,15 @@
+--- sql-formatter/lib/SqlFormatter.php
++++ sql-formatter/lib/SqlFormatter.php	(date 1699003695503)
+@@ -688,6 +688,12 @@
+                 $return = rtrim($return, ' ');
+             }
+ 
++            // Special handling for r token followed by a string token
++            if ($token[self::TOKEN_VALUE] === 'r' && isset($tokens[$i + 1]) && $tokens[$i + 1][self::TOKEN_TYPE] === self::TOKEN_TYPE_QUOTE) {
++                $return .= $highlighted;  // No space is appended here
++                continue;
++            }
++
+             $return .= $highlighted.' ';
+ 
+             // If the token shouldn't have a space after it

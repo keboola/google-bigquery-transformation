@@ -67,6 +67,9 @@
         "patches": {
             "google/cloud-bigquery": [
                 "patches/google-cloud-bigquery-JobWaitTrait.php.patch"
+            ],
+            "jdorn/sql-formatter": [
+                "patches/jdorn-sql-formatter-SqlFormatter.php.patch"
             ]
         }
     }
