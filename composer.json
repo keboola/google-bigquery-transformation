@@ -9,6 +9,7 @@
         "google/cloud-bigquery": "^1.23",
         "jdorn/sql-formatter": "^1.2",
         "keboola/php-component": "^9.0",
+        "keboola/retry": "^0.5.1",
         "keboola/table-backend-utils": "^2.0"
     },
     "require-dev": {

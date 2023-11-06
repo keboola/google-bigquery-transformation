@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace BigQueryTransformation;
 
 use BigQueryTransformation\Exception\TransformationAbortedException;
+use DateTime;
 use Keboola\Component\BaseComponent;
 use Keboola\Component\Manifest\ManifestManager;
+use Retry\BackOff\UniformRandomBackOffPolicy;
+use Retry\Policy\CallableRetryPolicy;
+use Retry\RetryProxy;
+use Throwable;
 
 class Component extends BaseComponent
 {
@@ -21,8 +26,22 @@ class Component extends BaseComponent
     {
         /** @var \BigQueryTransformation\Config $config */
         $config = $this->getConfig();
+        $logger = $this->getLogger();
 
-        $transformation = new Transformation($config, $this->getLogger());
+        $retryPolicy = new CallableRetryPolicy(function (Throwable $e) use ($logger): bool {
+            $logger->warning(sprintf(
+                '[%s][Retry] Transformation setup failed: %s',
+                (new DateTime('now'))->format(Datetime::ATOM),
+                $e->getMessage()
+            ));
+            return true;
+        }, 10);
+        $proxy = new RetryProxy($retryPolicy, new UniformRandomBackOffPolicy());
+        $transformation = $proxy->call(
+            fn(): Transformation => new Transformation($config, $logger)
+        );
+        assert($transformation instanceof Transformation);
+
         $transformation->declareAbortVariable();
         $transformation->declareEnvVars();
         try {
