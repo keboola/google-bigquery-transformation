@@ -6,6 +6,8 @@ namespace BigQueryTransformation\Tests;
 
 use BigQueryTransformation\BigQueryConnection;
 use BigQueryTransformation\Traits\GetEnvVarsTrait;
+use Google\Cloud\BigQuery\Exception\JobException;
+use Google\Cloud\Core\Exception\BadRequestException;
 use Google\Cloud\Core\Exception\ServiceException;
 use Keboola\Component\UserException;
 use PHPUnit\Framework\TestCase;
@@ -14,6 +16,20 @@ use Throwable;
 class ConnectionTest extends TestCase
 {
     use GetEnvVarsTrait;
+
+    private const TIMEOUT_RECURSIVE_QUERY = 'WITH RECURSIVE counter AS (
+                      SELECT 1 AS n
+                      UNION ALL
+                      SELECT n+1 FROM counter WHERE n < 10000
+                    )
+                    
+                    SELECT 
+                      a.n AS val1, 
+                      b.n AS val2
+                    FROM 
+                      counter a 
+                    CROSS JOIN 
+                      counter b;';
 
     public function testConnection(): void
     {
@@ -46,19 +62,19 @@ class ConnectionTest extends TestCase
 
         // long-running query
         $connection->executeQuery(
-            'WITH RECURSIVE counter AS (
-                      SELECT 1 AS n
-                      UNION ALL
-                      SELECT n+1 FROM counter WHERE n < 10000
-                    )
-                    
-                    SELECT 
-                      a.n AS val1, 
-                      b.n AS val2
-                    FROM 
-                      counter a 
-                    CROSS JOIN 
-                      counter b;'
+            self::TIMEOUT_RECURSIVE_QUERY
+        );
+    }
+
+    public function testRecursiveQueryWithoutTimeout(): void
+    {
+        $this->expectException(BadRequestException::class);
+
+        $connection = new BigQueryConnection($this->getEnvVars(), $this->getRunIdEnvVar());
+
+        // long-running query
+        $connection->executeQuery(
+            self::TIMEOUT_RECURSIVE_QUERY
         );
     }
 }
