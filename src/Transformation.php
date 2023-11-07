@@ -10,9 +10,9 @@ use BigQueryTransformation\Exception\TransformationAbortedException;
 use Keboola\Component\Manifest\ManifestManager;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTableManifestOptions;
 use Keboola\Component\UserException;
-use Keboola\TableBackendUtils\Column\Bigquery\BigqueryColumn;
-use Keboola\TableBackendUtils\Column\ColumnCollection;
 use Keboola\TableBackendUtils\Table\Bigquery\BigqueryTableDefinition;
+use Keboola\TableBackendUtils\Table\Bigquery\BigqueryTableReflection;
+use Keboola\TableBackendUtils\TableNotExistsReflectionException;
 use Psr\Log\LoggerInterface;
 use SqlFormatter;
 use Throwable;
@@ -208,44 +208,23 @@ class Transformation
      */
     protected function getDefinition(string $tableName): BigqueryTableDefinition
     {
-        $result = $this->connection->executeQuery(sprintf('SELECT *
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE table_name = "%s"', $tableName));
-        /** @var array<int, array{
-         *     table_catalog: string,
-         *     table_schema: string,
-         *     table_name: string,
-         *     column_name: string,
-         *     ordinal_position: int,
-         *     is_nullable: string,
-         *     data_type: string,
-         *     is_hidden: string,
-         *     is_system_defined: string,
-         *     is_partitioning_column: string,
-         *     clustering_ordinal_position: ?string,
-         *     collation_name: string,
-         *     column_default: string,
-         *     rounding_mode: ?string
-         * }> $columnsMeta
-         */
-        $columnsMeta = iterator_to_array($result->rows());
-        if (count($columnsMeta) === 0) {
+        $ref = new BigqueryTableReflection(
+            $this->connection->getClient(),
+            $this->schema,
+            $tableName
+        );
+        try {
+            $columns = $ref->getColumnsDefinitions();
+        } catch (TableNotExistsReflectionException $e) {
             throw new MissingTableException($tableName);
-        } else {
-            $columns = [];
-
-            foreach ($columnsMeta as $col) {
-                $columns[] = BigqueryColumn::createFromDB($col);
-            }
-
-            return new BigqueryTableDefinition(
-                $this->schema,
-                $tableName,
-                false,
-                new ColumnCollection($columns),
-                []
-            );
         }
+        return new BigqueryTableDefinition(
+            $this->schema,
+            $tableName,
+            false,
+            $columns,
+            []
+        );
     }
 
     public function declareAbortVariable(): void

@@ -58,6 +58,11 @@ class BigQueryConnection
         $this->runId = $runId;
     }
 
+    public function getClient(): BigQueryClient
+    {
+        return $this->client;
+    }
+
     /**
      * @throws \Keboola\Component\UserException
      * @throws \Google\Cloud\Core\Exception\ServiceException
