@@ -1394,16 +1394,16 @@
         },
         {
             "name": "keboola/table-backend-utils",
-            "version": "2.1.0",
+            "version": "2.2.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/keboola/php-table-backend-utils.git",
-                "reference": "7356556ef21256a0ee44cde9a5cc50eba25041eb"
+                "reference": "0f72ffe660ce413548e727d1945a477c5e544c64"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/keboola/php-table-backend-utils/zipball/7356556ef21256a0ee44cde9a5cc50eba25041eb",
-                "reference": "7356556ef21256a0ee44cde9a5cc50eba25041eb",
+                "url": "https://api.github.com/repos/keboola/php-table-backend-utils/zipball/0f72ffe660ce413548e727d1945a477c5e544c64",
+                "reference": "0f72ffe660ce413548e727d1945a477c5e544c64",
                 "shasum": ""
             },
             "require": {
@@ -1444,9 +1444,9 @@
             "description": "Package allows to import files to Snowflake from multiple cloud storages",
             "support": {
                 "issues": "https://github.com/keboola/php-table-backend-utils/issues",
-                "source": "https://github.com/keboola/php-table-backend-utils/tree/2.1.0"
+                "source": "https://github.com/keboola/php-table-backend-utils/tree/2.2.3"
             },
-            "time": "2023-05-31T11:37:08+00:00"
+            "time": "2023-11-07T12:40:47+00:00"
         },
         {
             "name": "monolog/monolog",
