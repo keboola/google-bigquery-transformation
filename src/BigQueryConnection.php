@@ -50,6 +50,7 @@ class BigQueryConnection
                 return [Retry::class, 'shouldRetryException'];
             },
             'retries' => 30,
+            'requestTimeout' => 120,
         ]);
         $this->session = (new SessionFactory($this->client))->createSession();
         /** @var string $schema */
