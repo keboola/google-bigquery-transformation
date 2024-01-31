@@ -13,6 +13,7 @@ env:
     DOCKERHUB_TOKEN: '${{ secrets.DOCKERHUB_TOKEN }}'
 
     BQ_DATASET: WORKSPACE_928415912
+    BQ_LOCATION: US
     BQ_CREDENTIALS_TYPE: service_account
     BQ_CREDENTIALS_PROJECT_ID: sapi-9452
     BQ_CREDENTIALS_PRIVATE_KEY_ID: '${{ secrets.BQ_CREDENTIALS_PRIVATE_KEY_ID }}'
@@ -91,6 +92,7 @@ jobs:
                 run: | 
                     docker run \
                     -e BQ_DATASET \
+                    -e BQ_LOCATION \
                     -e BQ_CREDENTIALS_TYPE \
                     -e BQ_CREDENTIALS_PROJECT_ID \
                     -e BQ_CREDENTIALS_PRIVATE_KEY_ID \

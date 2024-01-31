@@ -2,6 +2,7 @@
   "authorization": {
     "workspace": {
       "schema": "%env(string:BQ_DATASET)%",
+      "region": "%env(string:BQ_LOCATION)%",
       "credentials": {
         "type": "%env(string:BQ_CREDENTIALS_TYPE)%",
         "project_id": "%env(string:BQ_CREDENTIALS_PROJECT_ID)%",

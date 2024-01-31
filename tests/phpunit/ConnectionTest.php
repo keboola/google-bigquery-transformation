@@ -6,7 +6,6 @@ namespace BigQueryTransformation\Tests;
 
 use BigQueryTransformation\BigQueryConnection;
 use BigQueryTransformation\Traits\GetEnvVarsTrait;
-use Google\Cloud\BigQuery\Exception\JobException;
 use Google\Cloud\Core\Exception\BadRequestException;
 use Google\Cloud\Core\Exception\ServiceException;
 use Keboola\Component\UserException;

@@ -51,6 +51,7 @@ class BigQueryConnection
             },
             'retries' => 30,
             'requestTimeout' => 120,
+            'location' => $databaseConfig['region'],
         ]);
         $this->session = (new SessionFactory($this->client))->createSession();
         /** @var string $schema */
