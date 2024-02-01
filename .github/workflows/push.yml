@@ -27,8 +27,8 @@ env:
 
     KBC_RUNID: '123456789'
     KBC_STORAGE_TOKEN: '${{ secrets.KBC_STORAGE_TOKEN }}'
-    KBC_TEST_PROJECT_URL: ''
-    KBC_TEST_PROJECT_CONFIGS: ''
+    KBC_TEST_PROJECT_URL: 'connection.europe-west3.gcp.keboola.com'
+    KBC_TEST_PROJECT_CONFIGS: '35542'
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -114,6 +114,7 @@ jobs:
                 if: 'env.KBC_STORAGE_TOKEN && env.KBC_TEST_PROJECT_CONFIGS'
                 uses: keboola/action-run-configs-parallel@master
                 with:
+                    host: '${{ env.KBC_TEST_PROJECT_URL }}'
                     token: '${{ env.KBC_STORAGE_TOKEN }}'
                     componentId: '${{ env.KBC_DEVELOPERPORTAL_APP }}'
                     tag: '${{ needs.build.outputs.app_image_tag }}'
