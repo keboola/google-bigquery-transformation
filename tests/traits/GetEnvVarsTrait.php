@@ -40,7 +40,12 @@ trait GetEnvVarsTrait
             throw new RuntimeException('Missing "BQ_DATASET" environment variable!');
         }
 
-        return ['schema' => $dataset, 'credentials' => $credentials];
+        $location = getenv('BQ_LOCATION');
+        if (!$location) {
+            throw new RuntimeException('Missing "BQ_LOCATION" environment variable!');
+        }
+
+        return ['schema' => $dataset, 'region' => $location, 'credentials' => $credentials];
     }
 
     public function getRunIdEnvVar(): string
