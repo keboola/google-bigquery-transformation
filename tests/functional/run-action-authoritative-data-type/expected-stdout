@@ -1,0 +1,6 @@
+Processing block "first block".
+Processing code "first code".
+Running query "CREATE TABLE IF NOT EXISTS `example` (name STRING NOT NULL, usercity STRING, PRIMARY KEY (name) NOT ENFORCED);".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
+Running query "INSERT INTO `example` VALUES ('test example name', 'Prague'), ('test example name 2', 'Brno'), ('test example name 3', 'Ostrava')".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults

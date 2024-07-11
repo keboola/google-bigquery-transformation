@@ -8,6 +8,7 @@ env:
     KBC_DEVELOPERPORTAL_APP: keboola.google-bigquery-transformation
     KBC_DEVELOPERPORTAL_USERNAME: keboola+google_bigquery_transformation_gha
     KBC_DEVELOPERPORTAL_PASSWORD: '${{ secrets.KBC_DEVELOPERPORTAL_PASSWORD }}'
+    KBC_DATA_TYPE_SUPPORT: "none"
 
     DOCKERHUB_USER: '${{ secrets.DOCKERHUB_USER }}'
     DOCKERHUB_TOKEN: '${{ secrets.DOCKERHUB_TOKEN }}'
@@ -104,6 +105,7 @@ jobs:
                     -e BQ_CREDENTIALS_AUTH_PROVIDER_X509_CERT_URL \
                     -e BQ_CREDENTIALS_CLIENT_X509_CERT_URL \
                     -e KBC_RUNID \
+                    -e KBC_DATA_TYPE_SUPPORT \
                     ${{env.APP_IMAGE}} composer ci
     tests-in-kbc:
         needs: build
