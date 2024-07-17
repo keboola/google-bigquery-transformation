@@ -74,7 +74,6 @@ class Transformation
                 ];
 
                 if ($column->getColumnDefinition()->getLength() !== null) {
-                    $dataTypes['base']['length'] = $column->getColumnDefinition()->getLength();
                     $dataTypes['bigquery']['length'] = $column->getColumnDefinition()->getLength();
                 }
 
