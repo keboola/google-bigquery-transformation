@@ -79,7 +79,8 @@ class Component extends BaseComponent
         $transformation->createManifestMetadata(
             $tables,
             new ManifestManager($this->getDataDir()),
-            $transformationFailed
+            $transformationFailed,
+            $config->getDataTypeSupport()->usingLegacyManifest(),
         );
     }
 }

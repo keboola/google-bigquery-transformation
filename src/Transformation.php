@@ -8,8 +8,10 @@ use BigQueryTransformation\Exception\ApplicationException;
 use BigQueryTransformation\Exception\MissingTableException;
 use BigQueryTransformation\Exception\TransformationAbortedException;
 use Keboola\Component\Manifest\ManifestManager;
-use Keboola\Component\Manifest\ManifestManager\Options\OutTableManifestOptions;
+use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptions;
+use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptionsSchema;
 use Keboola\Component\UserException;
+use Keboola\Datatype\Definition\Common;
 use Keboola\TableBackendUtils\Table\Bigquery\BigqueryTableDefinition;
 use Keboola\TableBackendUtils\Table\Bigquery\BigqueryTableReflection;
 use Keboola\TableBackendUtils\TableNotExistsReflectionException;
@@ -53,28 +55,64 @@ class Transformation
     public function createManifestMetadata(
         array $tableNames,
         ManifestManager $manifestManager,
-        bool $transformationFailed
+        bool $transformationFailed,
+        bool $usingLegacyManifest,
     ): void {
         $tableStructures = $this->getTables($tableNames, $transformationFailed);
         foreach ($tableStructures as $tableDef) {
-            $columnsMetadata = (object) [];
+            $schema = [];
+
             /** @var \Keboola\TableBackendUtils\Column\Bigquery\BigqueryColumn $column */
             foreach ($tableDef->getColumnsDefinitions() as $column) {
-                $columnsMetadata->{$column->getColumnName()} = $column->getColumnDefinition()->toMetadata();
+                $dataTypes = [
+                    'base' => [
+                        'type' => $column->getColumnDefinition()->getBasetype(),
+                    ],
+                    'bigquery' => [
+                        'type' => $column->getColumnDefinition()->getType(),
+                    ],
+                ];
+
+                if ($column->getColumnDefinition()->getLength() !== null) {
+                    $dataTypes['bigquery']['length'] = $column->getColumnDefinition()->getLength();
+                }
+
+                if ($column->getColumnDefinition()->getDefault() !== null) {
+                    $dataTypes['base']['default'] = $column->getColumnDefinition()->getDefault();
+                    $dataTypes['bigquery']['default'] = $column->getColumnDefinition()->getDefault();
+                }
+
+                $metadata = [];
+                foreach ($column->getColumnDefinition()->toMetadata() as $value) {
+                    $metadata[$value['key']] = $value['value'];
+                }
+
+                $schema[] = new ManifestOptionsSchema(
+                    $column->getColumnName(),
+                    $dataTypes,
+                    $column->getColumnDefinition()->isNullable(),
+                    false, // primary key is not supported in keboola/table-backend-utils
+                    null,
+                    $metadata,
+                );
             }
-            $tableMetadata = [];
-            $tableMetadata[] = [
-                'key' => 'KBC.name',
-                'value' => $tableDef->getTableName(),
+
+            $tableMetadata = [
+                'KBC.name' => $tableDef->getTableName(),
+                Common::KBC_METADATA_KEY_BACKEND => 'bigquery',
             ];
 
-            $tableManifestOptions = new OutTableManifestOptions();
+            $tableManifestOptions = new ManifestOptions();
             $tableManifestOptions
-                ->setMetadata($tableMetadata)
-                ->setColumns($tableDef->getColumnsNames())
-                ->setColumnMetadata($columnsMetadata)
+                ->setTableMetadata($tableMetadata)
+                ->setSchema($schema)
+                ->setManifestType(ManifestOptions::MANIFEST_TYPE_OUTPUT)
             ;
-            $manifestManager->writeTableManifest($tableDef->getTableName(), $tableManifestOptions);
+            $manifestManager->writeTableManifest(
+                $tableDef->getTableName(),
+                $tableManifestOptions,
+                $usingLegacyManifest
+            );
         }
     }
 
