@@ -5,11 +5,16 @@ declare(strict_types=1);
 namespace BigQueryTransformation;
 
 use BigQueryTransformation\Client\Retry;
+use Google\Auth\HttpHandler\Guzzle6HttpHandler;
 use Google\Cloud\BigQuery\BigQueryClient;
 use Google\Cloud\BigQuery\Dataset;
 use Google\Cloud\BigQuery\QueryResults;
 use Google\Cloud\Core\ClientTrait;
 use Google\Cloud\Core\Exception\ServiceException;
+use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Request;
 use Keboola\Component\UserException;
 use Keboola\TableBackendUtils\Connection\Bigquery\Session;
 use Keboola\TableBackendUtils\Connection\Bigquery\SessionFactory;
@@ -33,10 +38,17 @@ class BigQueryConnection
     public function __construct(
         array $databaseConfig,
         string $runId,
-        private readonly int $queryTimeout = 0
+        private readonly int $queryTimeout = 0,
+        ?HandlerStack $handlerStack = null,
     ) {
+        if ($handlerStack === null) {
+            $handlerStack = HandlerStack::create();
+        }
+        $guzzleClient = new Client(['handler' => $handlerStack]);
+
         $this->client = new BigQueryClient([
             'keyFile' => $databaseConfig['credentials'],
+            'httpHandler' => new Guzzle6HttpHandler($guzzleClient),
             'restRetryFunction' => function () {
                 // BigQuery client sometimes calls directly restRetryFunction with exception as first argument
                 // But in other cases it expects to return callable which accepts exception as first argument
@@ -49,6 +61,11 @@ class BigQueryConnection
                 }
                 return [Retry::class, 'shouldRetryException'];
             },
+            'restOptions' => [
+                'headers' => [
+                    'User-Agent' => 'Keboola/1.0 (GPN:Keboola; connection)'
+                ]
+            ],
             'retries' => 30,
             'requestTimeout' => 120,
             'location' => $databaseConfig['region'],

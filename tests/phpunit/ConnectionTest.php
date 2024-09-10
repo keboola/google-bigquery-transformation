@@ -8,6 +8,9 @@ use BigQueryTransformation\BigQueryConnection;
 use BigQueryTransformation\Traits\GetEnvVarsTrait;
 use Google\Cloud\Core\Exception\BadRequestException;
 use Google\Cloud\Core\Exception\ServiceException;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Request;
 use Keboola\Component\UserException;
 use PHPUnit\Framework\TestCase;
 use Throwable;
@@ -75,5 +78,34 @@ class ConnectionTest extends TestCase
         $connection->executeQuery(
             self::TIMEOUT_RECURSIVE_QUERY
         );
+    }
+
+    public function testUserAgent(): void
+    {
+        $handlerStack = HandlerStack::create();
+
+        $requests = [];
+
+        $handlerStack->push(Middleware::mapRequest(function (Request $request) use (&$requests) {
+            $requests[] = $request;
+            return $request;
+        }));
+
+        $connection = new BigQueryConnection($this->getEnvVars(), $this->getRunIdEnvVar(), 0, $handlerStack);
+
+        $connection->executeQuery('SELECT 1');
+
+        $this->assertNotEmpty($requests, 'No requests were captured.');
+
+        foreach ($requests as $request) {
+            $headers = $request->getHeaders();
+
+            $this->assertArrayHasKey('User-Agent', $headers, 'User-Agent header is missing.');
+            $this->assertEquals(
+                'Keboola/1.0 (GPN:Keboola; connection)',
+                $headers['User-Agent'][0],
+                'User-Agent header is incorrect.'
+            );
+        }
     }
 }
