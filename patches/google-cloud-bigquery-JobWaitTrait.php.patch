@@ -1,11 +1,17 @@
---- src/JobWaitTrait.php	2023-11-01 13:07:13.826212516 +0100
-+++ src/JobWaitTrait.php	2023-11-01 13:07:24.542742533 +0100
-@@ -55,7 +55,17 @@
-                 }
+Index: vendor/google/cloud-bigquery/src/JobWaitTrait.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/vendor/google/cloud-bigquery/src/JobWaitTrait.php b/vendor/google/cloud-bigquery/src/JobWaitTrait.php
+--- a/vendor/google/cloud-bigquery/src/JobWaitTrait.php	
++++ b/vendor/google/cloud-bigquery/src/JobWaitTrait.php	(date 1717799621000)
+@@ -58,8 +58,13 @@
              };
-
--            (new ExponentialBackoff($maxRetries))
-+            (new ExponentialBackoff($maxRetries, function (\Throwable $e) {
+ 
+             (new ExponentialBackoff($maxRetries, function (Throwable $e) {
+-                if ($e instanceof ServiceException) {
+-                    return $e->getCode() !== 499;
 +                if ($e->getCode() === 499) {
 +                    // If the job is cancelled, don't retry.
 +                    return false;
@@ -13,9 +19,6 @@
 +                if ($e->getCode() === 400) {
 +                    // If the job is ended with bad request, don't retry.
 +                    return false;
-+                }
-+                return true;
-+            }))
-                 ->execute($retryFn);
-         }
-     }
+                 }
+                 return true;
+             }))
