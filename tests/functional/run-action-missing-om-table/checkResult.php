@@ -14,6 +14,6 @@ return static function (DatadirTest $test): void {
             ['name' => 'test example name 2', 'usercity' => 'Brno'],
             ['name' => 'test example name 3', 'usercity' => 'Ostrava'],
         ],
-        iterator_to_array($result)
+        iterator_to_array($result),
     );
 };

@@ -63,8 +63,8 @@ class BigQueryConnection
             },
             'restOptions' => [
                 'headers' => [
-                    'User-Agent' => 'Keboola/1.0 (GPN:Keboola; connection)'
-                ]
+                    'User-Agent' => 'Keboola/1.0 (GPN:Keboola; connection)',
+                ],
             ],
             'retries' => 30,
             'requestTimeout' => 120,

@@ -38,7 +38,7 @@ class Transformation
         $this->connection = new BigQueryConnection(
             $config->getDatabaseConfig(),
             $runId,
-            $config->getQueryTimeout()
+            $config->getQueryTimeout(),
         );
         $this->logger = $logger;
         /** @var string $schema */
@@ -111,7 +111,7 @@ class Transformation
             $manifestManager->writeTableManifest(
                 $tableDef->getTableName(),
                 $tableManifestOptions,
-                $usingLegacyManifest
+                $usingLegacyManifest,
             );
         }
     }
@@ -152,8 +152,8 @@ class Transformation
                 sprintf(
                     '%s "%s" specified in output were not created by the transformation.',
                     count($missingTables) > 1 ? 'Tables' : 'Table',
-                    implode('", "', $missingTables)
-                )
+                    implode('", "', $missingTables),
+                ),
             );
         }
 
@@ -220,7 +220,7 @@ class Transformation
                     'Query "%s" in "%s" failed with error: "%s"',
                     $this->queryExcerpt($query),
                     $blockName,
-                    $bqMessage ?? $exception->getMessage()
+                    $bqMessage ?? $exception->getMessage(),
                 );
                 throw new UserException($message, 0, $exception);
             }
@@ -249,7 +249,7 @@ class Transformation
         $ref = new BigqueryTableReflection(
             $this->connection->getClient(),
             $this->schema,
-            $tableName
+            $tableName,
         );
         try {
             $columns = $ref->getColumnsDefinitions();
@@ -261,7 +261,7 @@ class Transformation
             $tableName,
             false,
             $columns,
-            []
+            [],
         );
     }
 
@@ -310,7 +310,7 @@ class Transformation
         $result = iterator_to_array($result->rows());
         if ($result[0][self::ABORT_TRANSFORMATION] !== '') {
             throw new TransformationAbortedException(
-                sprintf('Transformation aborted with message "%s"', $result[0][self::ABORT_TRANSFORMATION])
+                sprintf('Transformation aborted with message "%s"', $result[0][self::ABORT_TRANSFORMATION]),
             );
         }
     }

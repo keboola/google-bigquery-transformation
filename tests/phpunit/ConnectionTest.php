@@ -64,7 +64,7 @@ class ConnectionTest extends TestCase
 
         // long-running query
         $connection->executeQuery(
-            self::TIMEOUT_RECURSIVE_QUERY
+            self::TIMEOUT_RECURSIVE_QUERY,
         );
     }
 
@@ -76,7 +76,7 @@ class ConnectionTest extends TestCase
 
         // long-running query
         $connection->executeQuery(
-            self::TIMEOUT_RECURSIVE_QUERY
+            self::TIMEOUT_RECURSIVE_QUERY,
         );
     }
 
@@ -104,7 +104,7 @@ class ConnectionTest extends TestCase
             $this->assertEquals(
                 'Keboola/1.0 (GPN:Keboola; connection)',
                 $headers['User-Agent'][0],
-                'User-Agent header is incorrect.'
+                'User-Agent header is incorrect.',
             );
         }
     }
