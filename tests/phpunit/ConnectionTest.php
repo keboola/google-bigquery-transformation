@@ -82,22 +82,18 @@ class ConnectionTest extends TestCase
 
     public function testUserAgent(): void
     {
+        $historyContainer = [];
+        $historyMiddleware = Middleware::history($historyContainer);
         $handlerStack = HandlerStack::create();
-
-        $requests = [];
-
-        $handlerStack->push(Middleware::mapRequest(function (Request $request) use (&$requests) {
-            $requests[] = $request;
-            return $request;
-        }));
+        $handlerStack->push($historyMiddleware);
 
         $connection = new BigQueryConnection($this->getEnvVars(), $this->getRunIdEnvVar(), 0, $handlerStack);
-
         $connection->executeQuery('SELECT 1');
 
-        $this->assertNotEmpty($requests, 'No requests were captured.');
-
-        foreach ($requests as $request) {
+        $this->assertNotEmpty($historyContainer, 'No requests were captured.');
+        foreach ($historyContainer as $transaction) {
+            /** @var Request $request */
+            $request = $transaction['request'];
             $headers = $request->getHeaders();
 
             $this->assertArrayHasKey('User-Agent', $headers, 'User-Agent header is missing.');
