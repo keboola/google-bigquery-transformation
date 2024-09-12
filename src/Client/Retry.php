@@ -40,7 +40,7 @@ final class Retry
         try {
             $message = self::jsonDecode(
                 $message,
-                true
+                true,
             );
         } catch (InvalidArgumentException $ex) {
             return false;

@@ -32,13 +32,13 @@ class Component extends BaseComponent
             $logger->warning(sprintf(
                 '[%s][Retry] Transformation setup failed: %s',
                 (new DateTime('now'))->format(Datetime::ATOM),
-                $e->getMessage()
+                $e->getMessage(),
             ));
             return true;
         }, 10);
         $proxy = new RetryProxy($retryPolicy, new UniformRandomBackOffPolicy());
         $transformation = $proxy->call(
-            fn(): Transformation => new Transformation($config, $logger)
+            fn(): Transformation => new Transformation($config, $logger),
         );
         assert($transformation instanceof Transformation);
 
@@ -72,7 +72,7 @@ class Component extends BaseComponent
     protected function generateManifest(
         Config $config,
         Transformation $transformation,
-        bool $transformationFailed = false
+        bool $transformationFailed = false,
     ): void {
         /** @var array<array{'source': string, 'write_always'?: bool}> $tables */
         $tables = $config->getExpectedOutputTables();

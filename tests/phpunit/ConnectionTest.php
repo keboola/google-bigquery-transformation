@@ -8,6 +8,9 @@ use BigQueryTransformation\BigQueryConnection;
 use BigQueryTransformation\Traits\GetEnvVarsTrait;
 use Google\Cloud\Core\Exception\BadRequestException;
 use Google\Cloud\Core\Exception\ServiceException;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Request;
 use Keboola\Component\UserException;
 use PHPUnit\Framework\TestCase;
 use Throwable;
@@ -61,7 +64,7 @@ class ConnectionTest extends TestCase
 
         // long-running query
         $connection->executeQuery(
-            self::TIMEOUT_RECURSIVE_QUERY
+            self::TIMEOUT_RECURSIVE_QUERY,
         );
     }
 
@@ -73,7 +76,32 @@ class ConnectionTest extends TestCase
 
         // long-running query
         $connection->executeQuery(
-            self::TIMEOUT_RECURSIVE_QUERY
+            self::TIMEOUT_RECURSIVE_QUERY,
         );
+    }
+
+    public function testUserAgent(): void
+    {
+        $historyContainer = [];
+        $historyMiddleware = Middleware::history($historyContainer);
+        $handlerStack = HandlerStack::create();
+        $handlerStack->push($historyMiddleware);
+
+        $connection = new BigQueryConnection($this->getEnvVars(), $this->getRunIdEnvVar(), 0, $handlerStack);
+        $connection->executeQuery('SELECT 1');
+
+        $this->assertNotEmpty($historyContainer, 'No requests were captured.');
+        foreach ($historyContainer as $transaction) {
+            /** @var Request $request */
+            $request = $transaction['request'];
+            $headers = $request->getHeaders();
+
+            $this->assertArrayHasKey('User-Agent', $headers, 'User-Agent header is missing.');
+            $this->assertEquals(
+                'Keboola/1.0 (GPN:Keboola; connection)',
+                $headers['User-Agent'][0],
+                'User-Agent header is incorrect.',
+            );
+        }
     }
 }

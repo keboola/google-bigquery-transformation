@@ -12,6 +12,6 @@ return static function (DatadirTest $test): void {
         [
             ['name' => 'KBC_RUNID', 'value' => getenv('KBC_RUNID')],
         ],
-        iterator_to_array($result)
+        iterator_to_array($result),
     );
 };
