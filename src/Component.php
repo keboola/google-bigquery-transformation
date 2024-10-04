@@ -35,8 +35,8 @@ class Component extends BaseComponent
                 $e->getMessage(),
             ));
             return true;
-        }, 10);
-        $proxy = new RetryProxy($retryPolicy, new UniformRandomBackOffPolicy());
+        }, 20);
+        $proxy = new RetryProxy($retryPolicy, new UniformRandomBackOffPolicy(1000, 3000));
         $transformation = $proxy->call(
             fn(): Transformation => new Transformation($config, $logger),
         );
