@@ -60,6 +60,7 @@ class RetryTest extends TestCase
     public function retryCodesErrorProvider(): array
     {
         return [
+            [401],
             [429],
             [500],
             [503],
