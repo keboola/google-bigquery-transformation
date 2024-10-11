@@ -25,7 +25,7 @@ final class Retry
     {
         $statusCode = $ex->getCode();
 
-        if (in_array($statusCode, [429, 500, 503,])) {
+        if (in_array($statusCode, [401, 429, 500, 503,])) {
             return true;
         }
         if ($statusCode >= 200 && $statusCode < 300) {
