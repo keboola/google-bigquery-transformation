@@ -1,6 +1,6 @@
 # Google BigQuery Transformation
 
-Transformation component which runs SQL queries on BigQuery.
+The BigQuery transformation component executes SQL queries directly within Google BigQuery.
 
 ## Configuration
 
@@ -9,20 +9,19 @@ Transformation component which runs SQL queries on BigQuery.
         - `schema` string (required)
         - `credentials` object (required)
             - ...
-- `parameters`
-    - `query_timeout` integer (optional, default `0`): timeout for a request in seconds, `0` means no timeout
-    - `blocks` array (required): list of blocks
-        - `name` string (required): name of the block
-        - `codes` array (required): list of codes
-            - `name` string (required): name of the code
-            - `script` array (required): list of sql queries
+- `parameters`:
+    - `query_timeout` integer (optional, default `0`): Timeout for a request in seconds. Set to `0` for no timeout.
+    - `blocks` array (required): List of blocks
+        - `name` string (required): Name of the query block
+        - `codes` array (required): List of codes
+            - `name` string (required): Name of the code
+            - `script` array (required): List of SQL queries
 
 Read about workspace credentials [here](https://developers.keboola.com/extend/common-interface/folders/#exchanging-data-via-workspace).
 
-## Example configuration
+## Example Configuration
 
-Note that authorizations section is missing in the example. In production, the Job Runner injects credentials
-automatically.
+**Note:** The authorizations section is ommitted here; in production, credentials are injected automatically by the Job Runner.
 
 ```json
 {
@@ -45,7 +44,7 @@ automatically.
 }
 ```
 
-## Sample credentials file
+## Sample Credentials File
 
 ```json
 {
@@ -76,8 +75,8 @@ Install dependencies:
 docker-compose run --rm dev composer install --no-scripts
 ```
 
-Create `.env` file from template `.env.dist` and fill it with data from Credentials File.
-As `BQ_DATASET` use the name of the dataset, e.g. `WORKSPACE_222`.
+Create a `.env` file from the template `.env.dist` and populate it with the appropriate credentials.
+Se tje dataset name (`BQ_DATASET`) accordingly, e.g., `WORKSPACE_222`.
 
 Run the test suites:
 ```shell
@@ -86,4 +85,4 @@ docker-compose run --rm dev composer tests
 
 ## License
 
-Check LICENSE file.
+Refer to the LICENSE file for licensing details.
