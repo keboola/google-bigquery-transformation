@@ -1,6 +1,6 @@
 {
     "name": "keboola/google-bigquery-transformation",
-    "description": "Transformation component for Google BigQuery",
+    "description": "Transformation Component for Google BigQuery",
     "license": "MIT",
     "require": {
         "php": "^8.2",
