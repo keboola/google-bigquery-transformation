@@ -90,6 +90,12 @@ class BigQueryConnection
     {
         $queryOptions = $this->session->getAsQueryOptions();
         $queryOptions['configuration']['labels'] = ['run_id' => $this->runId];
+
+        $branchId = getenv('KBC_BRANCHID');
+        if ($branchId) {
+            $queryOptions['configuration']['labels']['branch_id'] = $branchId;
+        }
+
         if ($this->queryTimeout !== 0) {
             $queryOptions['configuration']['jobTimeoutMs'] = $this->queryTimeout * 1000;
         }

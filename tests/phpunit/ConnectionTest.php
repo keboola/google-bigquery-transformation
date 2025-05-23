@@ -24,7 +24,7 @@ class ConnectionTest extends TestCase
                       UNION ALL
                       SELECT n+1 FROM counter WHERE n < 10000
                     )
-                    
+
                     SELECT 
                       a.n AS val1, 
                       b.n AS val2
@@ -103,5 +103,37 @@ class ConnectionTest extends TestCase
                 'User-Agent header is incorrect.',
             );
         }
+    }
+    public function testBranchIdLabel(): void
+    {
+        // Set branch ID environment variable
+        putenv('KBC_BRANCHID=test-branch');
+
+        $historyContainer = [];
+        $historyMiddleware = Middleware::history($historyContainer);
+        $handlerStack = HandlerStack::create();
+        $handlerStack->push($historyMiddleware);
+
+        $connection = new BigQueryConnection($this->getEnvVars(), $this->getRunIdEnvVar(), 0, $handlerStack);
+        $connection->executeQuery('SELECT 1');
+
+        // Clean up environment variable
+        putenv('KBC_BRANCHID');
+
+        $this->assertNotEmpty($historyContainer, 'No requests were captured.');
+
+        $branchIdFound = false;
+        foreach ($historyContainer as $transaction) {
+            $request = $transaction['request'];
+            $requestBody = (string) $request->getBody();
+
+            // Check if branch_id label is in the request body
+            if (strpos($requestBody, '"branch_id":"test-branch"') !== false) {
+                $branchIdFound = true;
+                break;
+            }
+        }
+
+        $this->assertTrue($branchIdFound, 'branch_id label was not found in the request body');
     }
 }
