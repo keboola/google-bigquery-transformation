@@ -35,12 +35,14 @@ class Transformation
         if (!$runId) {
             throw new ApplicationException('Missing KBC_RUNID environment variable');
         }
+        $this->logger = $logger;
         $this->connection = new BigQueryConnection(
             $config->getDatabaseConfig(),
             $runId,
             $config->getQueryTimeout(),
+            null,
+            $this->logger,
         );
-        $this->logger = $logger;
         /** @var string $schema */
         $schema = $config->getDatabaseConfig()['schema'];
         $this->schema = $schema;
