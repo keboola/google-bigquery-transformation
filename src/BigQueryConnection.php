@@ -18,6 +18,7 @@ use GuzzleHttp\Psr7\Request;
 use Keboola\Component\UserException;
 use Keboola\TableBackendUtils\Connection\Bigquery\Session;
 use Keboola\TableBackendUtils\Connection\Bigquery\SessionFactory;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 class BigQueryConnection
@@ -40,6 +41,7 @@ class BigQueryConnection
         string $runId,
         private readonly int $queryTimeout = 0,
         ?HandlerStack $handlerStack = null,
+        private readonly ?LoggerInterface $logger = null,
     ) {
         if ($handlerStack === null) {
             $handlerStack = HandlerStack::create();
@@ -99,6 +101,17 @@ class BigQueryConnection
         if ($this->queryTimeout !== 0) {
             $queryOptions['configuration']['jobTimeoutMs'] = $this->queryTimeout * 1000;
         }
+
+        $formattedLabels = [];
+        foreach ($queryOptions['configuration']['labels'] as $key => $value) {
+            $formattedLabels[] = "$key: $value";
+        }
+        $this->logger?->debug(
+            sprintf(
+                'Executing query with labels: %s',
+                implode(', ', $formattedLabels),
+            ),
+        );
 
         try {
             return $this->client->runQuery($this->client->query($query, $queryOptions)->defaultDataset($this->dataset));
