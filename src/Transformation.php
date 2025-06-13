@@ -93,7 +93,7 @@ class Transformation
                     $column->getColumnName(),
                     $dataTypes,
                     $column->getColumnDefinition()->isNullable(),
-                    false, // primary key is not supported in keboola/table-backend-utils
+                    in_array($column->getColumnName(), $tableDef->getPrimaryKeysNames()),
                     null,
                     $metadata,
                 );
@@ -263,7 +263,7 @@ class Transformation
             $tableName,
             false,
             $columns,
-            [],
+            $ref->getPrimaryKeysNames(),
         );
     }
 
