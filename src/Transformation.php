@@ -49,19 +49,20 @@ class Transformation
     }
 
     /**
-     * @param array<array{'source': string, 'write_always'?: bool}> $tableNames
+     * @param array<array{'source': string, 'write_always'?: bool}> $outputTables
      * @throws \Keboola\Component\Manifest\ManifestManager\Options\OptionsValidationException
      * @throws \Google\Cloud\Core\Exception\GoogleException
      * @throws \Keboola\Component\UserException
      */
     public function createManifestMetadata(
-        array $tableNames,
+        array $outputTables,
         ManifestManager $manifestManager,
         bool $transformationFailed,
         bool $usingLegacyManifest,
     ): void {
-        $tableStructures = $this->getTables($tableNames, $transformationFailed);
-        foreach ($tableStructures as $tableDef) {
+        $tableStructures = $this->getTables($outputTables, $transformationFailed);
+        foreach ($tableStructures as $tableStructure) {
+            $tableDef = $tableStructure['def'];
             $schema = [];
 
             /** @var \Keboola\TableBackendUtils\Column\Bigquery\BigqueryColumn $column */
@@ -89,11 +90,16 @@ class Transformation
                     $metadata[$value['key']] = $value['value'];
                 }
 
+                $primaryKey = in_array($column->getColumnName(), $tableDef->getPrimaryKeysNames(), true);
+                if (in_array($column->getColumnName(), $tableStructure['userPrimaryKey'], true)) {
+                    $primaryKey = true;
+                }
+
                 $schema[] = new ManifestOptionsSchema(
                     $column->getColumnName(),
                     $dataTypes,
-                    $column->getColumnDefinition()->isNullable(),
-                    in_array($column->getColumnName(), $tableDef->getPrimaryKeysNames()),
+                    !$primaryKey && $column->getColumnDefinition()->isNullable(),
+                    $primaryKey,
                     null,
                     $metadata,
                 );
@@ -119,8 +125,8 @@ class Transformation
     }
 
     /**
-     * @param array<array{'source': string, 'write_always'?: bool}> $tables
-     * @return \Keboola\TableBackendUtils\Table\Bigquery\BigqueryTableDefinition[]
+     * @param array<array{'source': string, 'write_always'?: bool, 'primary_key'?: array}> $tables
+     * @return array{'def': BigqueryTableDefinition, 'userPrimaryKey': array}[]
      * @throws \Google\Cloud\Core\Exception\GoogleException
      * @throws \Keboola\Component\UserException
      */
@@ -137,13 +143,14 @@ class Transformation
             });
         }
 
-        $sourceTables = array_column($tables, 'source');
-
         $defs = [];
         $missingTables = [];
-        foreach ($sourceTables as $tableName) {
+        foreach ($tables as $table) {
             try {
-                $defs[] = $this->getDefinition($tableName);
+                $defs[] = [
+                    'userPrimaryKey' => $table['primary_key'] ?? [],
+                    'def' => $this->getDefinition($table['source']),
+                ];
             } catch (MissingTableException $e) {
                 $missingTables[] = $e->getTableName();
             }
