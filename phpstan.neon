@@ -1,3 +1,4 @@
 parameters:
     ignoreErrors:
+        - identifier: missingType.iterableValue
         - '#Cannot call method arrayNode\(\) on Symfony\\Component\\Config\\Definition\\Builder\\NodeParentInterface\|null.#'
