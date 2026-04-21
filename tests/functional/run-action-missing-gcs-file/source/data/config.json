@@ -26,7 +26,7 @@
             "name": "first code",
             "script": [
               "CREATE OR REPLACE EXTERNAL TABLE `missing_gcs_external` (x STRING) OPTIONS (format = 'CSV', uris = ['gs://keboola-nonexistent-bucket-ajda2663/missing.csv']);",
-              "SELECT * FROM `missing_gcs_external`;"
+              "CREATE OR REPLACE TABLE `missing_gcs_result` AS SELECT * FROM `missing_gcs_external`;"
             ]
           }
         ]

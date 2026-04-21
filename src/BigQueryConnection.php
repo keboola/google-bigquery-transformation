@@ -138,7 +138,7 @@ class BigQueryConnection
             );
         }
 
-        $this->logger?->info(sprintf(
+        $this->logger?->debug(sprintf(
             'BigQuery job %s finished in %.1fs',
             $result->identity()['jobId'] ?? 'unknown',
             microtime(true) - $startedAt,
