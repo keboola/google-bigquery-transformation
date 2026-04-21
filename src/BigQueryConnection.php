@@ -117,6 +117,7 @@ class BigQueryConnection
             ),
         );
 
+        $startedAt = microtime(true);
         try {
             $result = $this->client->runQuery(
                 $this->client->query($query, $queryOptions)->defaultDataset($this->dataset),
@@ -136,6 +137,12 @@ class BigQueryConnection
                 $e,
             );
         }
+
+        $this->logger?->info(sprintf(
+            'BigQuery job %s finished in %.1fs',
+            $result->identity()['jobId'] ?? 'unknown',
+            microtime(true) - $startedAt,
+        ));
 
         $errorResult = $result->info()['status']['errorResult'] ?? null;
         if ($errorResult) {
