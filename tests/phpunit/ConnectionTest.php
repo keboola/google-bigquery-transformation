@@ -80,6 +80,27 @@ class ConnectionTest extends TestCase
         );
     }
 
+    public function testPollRetriesExhausted(): void
+    {
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage('BigQuery job did not complete within the allowed polling window');
+
+        $connection = new BigQueryConnection(
+            $this->getEnvVars(),
+            $this->getRunIdEnvVar(),
+            0,
+            null,
+            null,
+            0,
+        );
+
+        // long-running query with maxPollRetries=0 so the first poll that finds
+        // the job still running bubbles up as JobException → UserException
+        $connection->executeQuery(
+            self::TIMEOUT_RECURSIVE_QUERY,
+        );
+    }
+
     public function testUserAgent(): void
     {
         $historyContainer = [];
