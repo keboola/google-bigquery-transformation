@@ -1,0 +1,4 @@
+Processing block "first block".
+Processing code "first code".
+Running query "CREATE OR REPLACE EXTERNAL TABLE `missing_gcs_external` (x STRING) OPTIONS (format = 'CSV', uris = ['gs://keboola-nonexistent-bucket-ajda2663/missing.csv']);".
+Running query "SELECT * FROM `missing_gcs_external`;".

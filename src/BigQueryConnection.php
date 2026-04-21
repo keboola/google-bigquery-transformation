@@ -8,6 +8,7 @@ use BigQueryTransformation\Client\Retry;
 use Google\Auth\HttpHandler\Guzzle6HttpHandler;
 use Google\Cloud\BigQuery\BigQueryClient;
 use Google\Cloud\BigQuery\Dataset;
+use Google\Cloud\BigQuery\Exception\JobException;
 use Google\Cloud\BigQuery\QueryResults;
 use Google\Cloud\Core\ClientTrait;
 use Google\Cloud\Core\Exception\ServiceException;
@@ -24,6 +25,8 @@ use Throwable;
 class BigQueryConnection
 {
     use ClientTrait;
+
+    public const DEFAULT_MAX_POLL_RETRIES = 200;
 
     private BigQueryClient $client;
 
@@ -42,6 +45,7 @@ class BigQueryConnection
         private readonly int $queryTimeout = 0,
         ?HandlerStack $handlerStack = null,
         private readonly ?LoggerInterface $logger = null,
+        private readonly int $maxPollRetries = self::DEFAULT_MAX_POLL_RETRIES,
     ) {
         if ($handlerStack === null) {
             $handlerStack = HandlerStack::create();
@@ -116,12 +120,21 @@ class BigQueryConnection
         try {
             $result = $this->client->runQuery(
                 $this->client->query($query, $queryOptions)->defaultDataset($this->dataset),
+                ['maxRetries' => $this->maxPollRetries],
             );
         } catch (ServiceException $e) {
             if (str_contains($e->getMessage(), 'Job timed out after')) {
                 throw new UserException('Query exceeded the maximum execution time');
             }
             throw $e;
+        } catch (JobException $e) {
+            throw new UserException(
+                'BigQuery job did not complete within the allowed polling window; '
+                . 'the query may be stuck or the BigQuery API unreachable. '
+                . 'Original error: ' . $e->getMessage(),
+                0,
+                $e,
+            );
         }
 
         $errorResult = $result->info()['status']['errorResult'] ?? null;
