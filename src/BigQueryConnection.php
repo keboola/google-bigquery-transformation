@@ -145,7 +145,7 @@ class BigQueryConnection
         ));
 
         $errorResult = $result->info()['status']['errorResult'] ?? null;
-        if ($errorResult) {
+        if (is_array($errorResult)) {
             throw new UserException($this->formatErrorResult($errorResult));
         }
 
