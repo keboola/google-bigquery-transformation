@@ -91,11 +91,11 @@ class ConnectionTest extends TestCase
             0,
             null,
             null,
-            0,
+            1,
         );
 
-        // long-running query with maxPollRetries=0 so the first poll that finds
-        // the job still running bubbles up as JobException → UserException
+        // long-running query with maxPollRetries=1 so the second incomplete poll
+        // bubbles up as JobException → UserException within a few seconds
         $connection->executeQuery(
             self::TIMEOUT_RECURSIVE_QUERY,
         );

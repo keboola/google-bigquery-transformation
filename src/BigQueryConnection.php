@@ -26,8 +26,6 @@ class BigQueryConnection
 {
     use ClientTrait;
 
-    public const DEFAULT_MAX_POLL_RETRIES = 200;
-
     private BigQueryClient $client;
 
     private Dataset $dataset;
@@ -45,7 +43,7 @@ class BigQueryConnection
         private readonly int $queryTimeout = 0,
         ?HandlerStack $handlerStack = null,
         private readonly ?LoggerInterface $logger = null,
-        private readonly int $maxPollRetries = self::DEFAULT_MAX_POLL_RETRIES,
+        private readonly int $maxPollRetries = 0,
     ) {
         if ($handlerStack === null) {
             $handlerStack = HandlerStack::create();
@@ -117,11 +115,16 @@ class BigQueryConnection
             ),
         );
 
+        $runQueryOptions = [];
+        if ($this->maxPollRetries > 0) {
+            $runQueryOptions['maxRetries'] = $this->maxPollRetries;
+        }
+
         $startedAt = microtime(true);
         try {
             $result = $this->client->runQuery(
                 $this->client->query($query, $queryOptions)->defaultDataset($this->dataset),
-                ['maxRetries' => $this->maxPollRetries],
+                $runQueryOptions,
             );
         } catch (ServiceException $e) {
             if (str_contains($e->getMessage(), 'Job timed out after')) {

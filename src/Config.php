@@ -15,6 +15,11 @@ class Config extends BaseConfig
         return $this->getIntValue(['parameters', 'query_timeout']);
     }
 
+    public function getMaxPollRetries(): int
+    {
+        return $this->getIntValue(['parameters', 'max_poll_retries']);
+    }
+
     /**
      * @return array<array{name: string, codes: array<array{name: string, script: array<int, string>}>}>
      */
