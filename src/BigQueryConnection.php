@@ -115,22 +115,22 @@ class BigQueryConnection
             ),
         );
 
-        $runQueryOptions = [];
+        $waitOptions = [];
         if ($this->maxPollRetries > 0) {
-            $runQueryOptions['maxRetries'] = $this->maxPollRetries;
+            $waitOptions['maxRetries'] = $this->maxPollRetries;
         }
 
         $startedAt = microtime(true);
+        $job = $this->client->startQuery(
+            $this->client->query($query, $queryOptions)->defaultDataset($this->dataset),
+        );
+
         try {
-            $result = $this->client->runQuery(
-                $this->client->query($query, $queryOptions)->defaultDataset($this->dataset),
-                $runQueryOptions,
-            );
-        } catch (ServiceException $e) {
-            if (str_contains($e->getMessage(), 'Job timed out after')) {
-                throw new UserException('Query exceeded the maximum execution time');
-            }
-            throw $e;
+            // Poll jobs.get (status.state) instead of jobs.getQueryResults (jobComplete).
+            // For runtime errors such as "Not found: Files gs://…", BigQuery keeps
+            // jobComplete=false on getQueryResults indefinitely while the job itself
+            // reaches state=DONE — using Job::waitUntilComplete avoids the silent hang.
+            $job->waitUntilComplete($waitOptions);
         } catch (JobException $e) {
             throw new UserException(
                 'BigQuery job did not complete within the allowed polling window; '
@@ -143,16 +143,20 @@ class BigQueryConnection
 
         $this->logger?->debug(sprintf(
             'BigQuery job %s finished in %.1fs',
-            $result->identity()['jobId'] ?? 'unknown',
+            $job->identity()['jobId'] ?? 'unknown',
             microtime(true) - $startedAt,
         ));
 
-        $errorResult = $result->info()['status']['errorResult'] ?? null;
+        $errorResult = $job->info()['status']['errorResult'] ?? null;
         if (is_array($errorResult)) {
+            $errorMessage = (string) ($errorResult['message'] ?? '');
+            if (str_contains($errorMessage, 'Job timed out after')) {
+                throw new UserException('Query exceeded the maximum execution time');
+            }
             throw new UserException($this->formatErrorResult($errorResult));
         }
 
-        return $result;
+        return $job->queryResults();
     }
 
     /**
