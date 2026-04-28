@@ -153,22 +153,9 @@ class BigQueryConnection
             if (str_contains($errorMessage, 'Job timed out after')) {
                 throw new UserException('Query exceeded the maximum execution time');
             }
-            throw new UserException($this->formatErrorResult($errorResult));
+            throw new UserException($errorMessage !== '' ? $errorMessage : 'BigQuery job failed');
         }
 
         return $job->queryResults();
-    }
-
-    /**
-     * @param array<string, string> $errorResult
-     */
-    private function formatErrorResult(array $errorResult): string
-    {
-        $parts = array_filter([
-            $errorResult['message'] ?? null,
-            isset($errorResult['reason']) ? sprintf('(reason: %s)', $errorResult['reason']) : null,
-            isset($errorResult['location']) ? sprintf('(at %s)', $errorResult['location']) : null,
-        ]);
-        return $parts ? implode(' ', $parts) : 'BigQuery job failed';
     }
 }
