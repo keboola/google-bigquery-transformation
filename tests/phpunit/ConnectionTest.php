@@ -101,6 +101,39 @@ class ConnectionTest extends TestCase
         );
     }
 
+    public function testPollingUsesJobsGetEndpoint(): void
+    {
+        // Polling must hit jobs.get (state=DONE), not jobs.getQueryResults
+        // (jobComplete) — the latter returns jobComplete=false indefinitely
+        // for jobs that fail with runtime errors such as missing GCS files.
+        $historyContainer = [];
+        $historyMiddleware = Middleware::history($historyContainer);
+        $handlerStack = HandlerStack::create();
+        $handlerStack->push($historyMiddleware);
+
+        $connection = new BigQueryConnection($this->getEnvVars(), $this->getRunIdEnvVar(), 0, $handlerStack);
+        $connection->executeQuery('SELECT 1');
+
+        $jobsGetCalled = false;
+        foreach ($historyContainer as $transaction) {
+            /** @var Request $request */
+            $request = $transaction['request'];
+            if ($request->getMethod() !== 'GET') {
+                continue;
+            }
+            if (preg_match('#/projects/[^/]+/jobs/[^/]+$#', $request->getUri()->getPath()) === 1) {
+                $jobsGetCalled = true;
+                break;
+            }
+        }
+
+        self::assertTrue(
+            $jobsGetCalled,
+            'executeQuery did not poll the jobs.get endpoint; '
+            . 'polling appears to use a different endpoint and may hang on runtime errors.',
+        );
+    }
+
     public function testUserAgent(): void
     {
         $historyContainer = [];
