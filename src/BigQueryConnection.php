@@ -8,6 +8,7 @@ use BigQueryTransformation\Client\Retry;
 use Google\Auth\HttpHandler\Guzzle6HttpHandler;
 use Google\Cloud\BigQuery\BigQueryClient;
 use Google\Cloud\BigQuery\Dataset;
+use Google\Cloud\BigQuery\Exception\JobException;
 use Google\Cloud\BigQuery\QueryResults;
 use Google\Cloud\Core\ClientTrait;
 use Google\Cloud\Core\Exception\ServiceException;
@@ -42,6 +43,7 @@ class BigQueryConnection
         private readonly int $queryTimeout = 0,
         ?HandlerStack $handlerStack = null,
         private readonly ?LoggerInterface $logger = null,
+        private readonly int $maxPollRetries = 0,
     ) {
         if ($handlerStack === null) {
             $handlerStack = HandlerStack::create();
@@ -113,13 +115,60 @@ class BigQueryConnection
             ),
         );
 
+        $waitOptions = [];
+        if ($this->maxPollRetries > 0) {
+            $waitOptions['maxRetries'] = $this->maxPollRetries;
+        }
+
+        $startedAt = microtime(true);
+        $job = $this->client->startQuery(
+            $this->client->query($query, $queryOptions)->defaultDataset($this->dataset),
+        );
+
         try {
-            return $this->client->runQuery($this->client->query($query, $queryOptions)->defaultDataset($this->dataset));
-        } catch (ServiceException $e) {
-            if (str_contains($e->getMessage(), 'Job timed out after')) {
+            // Poll jobs.get (status.state) instead of jobs.getQueryResults (jobComplete).
+            // For runtime errors such as "Not found: Files gs://…", BigQuery keeps
+            // jobComplete=false on getQueryResults indefinitely while the job itself
+            // reaches state=DONE — using Job::waitUntilComplete avoids the silent hang.
+            $job->waitUntilComplete($waitOptions);
+        } catch (JobException $e) {
+            throw new UserException(
+                'BigQuery job did not complete within the allowed polling window; '
+                . 'the query may be stuck or the BigQuery API unreachable. '
+                . 'Original error: ' . $e->getMessage(),
+                0,
+                $e,
+            );
+        }
+
+        $this->logger?->debug(sprintf(
+            'BigQuery job %s finished in %.1fs',
+            $job->identity()['jobId'] ?? 'unknown',
+            microtime(true) - $startedAt,
+        ));
+
+        $errorResult = $job->info()['status']['errorResult'] ?? null;
+        if (is_array($errorResult)) {
+            $errorMessage = (string) ($errorResult['message'] ?? '');
+            if (str_contains($errorMessage, 'Job timed out after')) {
                 throw new UserException('Query exceeded the maximum execution time');
             }
-            throw $e;
+            throw new UserException($this->formatErrorResult($errorResult));
         }
+
+        return $job->queryResults();
+    }
+
+    /**
+     * @param array<string, string> $errorResult
+     */
+    private function formatErrorResult(array $errorResult): string
+    {
+        $parts = array_filter([
+            $errorResult['message'] ?? null,
+            isset($errorResult['reason']) ? sprintf('(reason: %s)', $errorResult['reason']) : null,
+            isset($errorResult['location']) ? sprintf('(at %s)', $errorResult['location']) : null,
+        ]);
+        return $parts ? implode(' ', $parts) : 'BigQuery job failed';
     }
 }

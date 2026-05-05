@@ -1,0 +1,3 @@
+Processing block "first block".
+Processing code "first code".
+Running query "CREATE TABLE `test_error_result` AS SELECT CAST('not_a_number' AS INT64) AS n;".

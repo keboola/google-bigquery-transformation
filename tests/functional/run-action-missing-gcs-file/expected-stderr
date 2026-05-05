@@ -1,0 +1,1 @@
+Query "CREATE OR REPLACE TABLE `missing_gcs_result` AS SELECT * FROM `missing_gcs_external`;" in "first code" failed with error: "Not found:%a"

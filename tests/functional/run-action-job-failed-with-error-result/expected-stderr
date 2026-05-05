@@ -1,0 +1,1 @@
+Query "CREATE TABLE `test_error_result` AS SELECT CAST('not_a_number' AS INT64) AS n;" in "first code" failed with error: "Bad int64 value: not_a_number (reason: invalidQuery) (at query)"

@@ -1,0 +1,5 @@
+Processing block "first block".
+Processing code "first code".
+Running query "CREATE OR REPLACE EXTERNAL TABLE `missing_gcs_external` (x STRING) OPTIONS (format = 'CSV', uris = ['gs://keboola-nonexistent-bucket-ajda2663/missing.csv']);".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
+Running query "CREATE OR REPLACE TABLE `missing_gcs_result` AS SELECT * FROM `missing_gcs_external`;".

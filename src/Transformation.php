@@ -42,6 +42,7 @@ class Transformation
             $config->getQueryTimeout(),
             null,
             $this->logger,
+            $config->getMaxPollRetries(),
         );
         /** @var string $schema */
         $schema = $config->getDatabaseConfig()['schema'];
