@@ -63,6 +63,29 @@ automatically.
 }
 ```
 
+## Session variables export
+
+After a successful transformation, all user-declared session variables
+(top-level `DECLARE` statements in your block scripts) are written to
+`out/result.json` in the format:
+
+```json
+{
+    "variables": {
+        "my_var": "value",
+        "another_var": 42
+    }
+}
+```
+
+Notes:
+- The file is only written when at least one user-declared variable exists.
+- The file is **not** written if the transformation fails or is aborted via `ABORT_TRANSFORMATION`.
+- Internal `KBC_*` variables and `ABORT_TRANSFORMATION` are excluded from the output.
+- `ARRAY` and `STRUCT` typed variables are serialised as JSON arrays/objects.
+- `DATE`, `DATETIME`, `TIMESTAMP` and similar typed variables are serialised as ISO-8601 strings.
+- Variables declared inside nested `BEGIN ... END` blocks are local and not exported.
+
 ## Development
 
 Clone this repository.

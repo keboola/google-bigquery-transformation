@@ -1,0 +1,10 @@
+Processing block "Block 1".
+Processing code "Code 1".
+Running query "DECLARE a, b, MyVar INT64 DEFAULT 0".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
+Running query "SET a = 1".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
+Running query "SET b = 2".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
+Running query "SET MyVar = 3".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults

@@ -52,6 +52,7 @@ class Component extends BaseComponent
         }
 
         $this->generateManifest($config, $transformation);
+        $transformation->exportSessionVariables($this->getDataDir());
     }
 
     protected function getConfigClass(): string
