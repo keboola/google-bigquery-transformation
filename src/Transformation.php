@@ -7,8 +7,6 @@ namespace BigQueryTransformation;
 use BigQueryTransformation\Exception\ApplicationException;
 use BigQueryTransformation\Exception\MissingTableException;
 use BigQueryTransformation\Exception\TransformationAbortedException;
-use DateTimeInterface;
-use JsonSerializable;
 use Keboola\Component\Manifest\ManifestManager;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptions;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptionsSchema;
@@ -27,9 +25,7 @@ class Transformation
     private BigQueryConnection $connection;
     private LoggerInterface $logger;
     private string $schema;
-
-    /** @var array<int, string> */
-    private array $declaredVariables = [];
+    private SessionVariablesExporter $sessionVariablesExporter;
 
     /**
      * @throws \BigQueryTransformation\Exception\ApplicationException
@@ -52,6 +48,7 @@ class Transformation
         /** @var string $schema */
         $schema = $config->getDatabaseConfig()['schema'];
         $this->schema = $schema;
+        $this->sessionVariablesExporter = new SessionVariablesExporter($this->connection, $this->logger);
     }
 
     /**
@@ -208,10 +205,10 @@ class Transformation
 
             // Capture top-level DECLARE variable names before any further
             // filtering so user-declared session variables can be exported
-            // to result.json on successful completion. Cheap linear scan;
-            // placement before the SELECT-skip is intentional and robust
-            // to future changes in the read-only-query filter.
-            $this->parseDeclaredVariables($uncommentedQuery);
+            // to result.json on successful completion. Placement before the
+            // SELECT-skip is intentional and robust to future changes in
+            // the read-only-query filter.
+            $this->sessionVariablesExporter->captureFromQuery($uncommentedQuery);
 
             if (strtoupper(substr($uncommentedQuery, 0, 6)) === 'SELECT') {
                 $this->logger->info(sprintf('Ignoring select query "%s".', $this->queryExcerpt($query)));
@@ -330,186 +327,8 @@ class Transformation
         }
     }
 
-    /**
-     * If the query is a top-level DECLARE statement, capture its variable names.
-     * A query is treated as a DECLARE only when DECLARE is the first keyword,
-     * which matches how user scripts are authored in this component (one
-     * statement per script[] entry). DECLARE statements wrapped in
-     * BEGIN ... END blocks are local and intentionally skipped.
-     */
-    private function parseDeclaredVariables(string $query): void
-    {
-        if (preg_match('/^\s*DECLARE\s+/i', $query, $matches) !== 1) {
-            return;
-        }
-        $this->captureDeclareNames($query, strlen($matches[0]));
-    }
-
-    /**
-     * Reads comma-separated DECLARE variable names (bare identifiers or
-     * backtick-quoted) starting at $offset, until a type/DEFAULT keyword or `;`.
-     */
-    private function captureDeclareNames(string $query, int $offset): void
-    {
-        $i = $offset;
-        $len = strlen($query);
-        $typeStops = ['INT64', 'STRING', 'BOOL', 'BOOLEAN', 'FLOAT64', 'NUMERIC',
-            'BIGNUMERIC', 'BYTES', 'DATE', 'DATETIME', 'TIME', 'TIMESTAMP',
-            'GEOGRAPHY', 'JSON', 'INTERVAL', 'ARRAY', 'STRUCT', 'DEFAULT'];
-
-        while ($i < $len) {
-            // Skip whitespace and commas
-            while ($i < $len && (ctype_space($query[$i]) || $query[$i] === ',')) {
-                $i++;
-            }
-            if ($i >= $len || $query[$i] === ';') {
-                return;
-            }
-
-            // Backtick-quoted name
-            if ($query[$i] === '`') {
-                $i++;
-                $start = $i;
-                while ($i < $len && $query[$i] !== '`') {
-                    $i++;
-                }
-                $name = substr($query, $start, $i - $start);
-                if ($i < $len) {
-                    $i++; // skip closing backtick
-                }
-                if ($name !== '') {
-                    $this->declaredVariables[] = $name;
-                }
-                continue;
-            }
-
-            // Bare identifier
-            if (ctype_alpha($query[$i]) || $query[$i] === '_') {
-                $start = $i;
-                while ($i < $len && (ctype_alnum($query[$i]) || $query[$i] === '_')) {
-                    $i++;
-                }
-                $name = substr($query, $start, $i - $start);
-
-                // Is this a stop keyword?
-                if (in_array(strtoupper($name), $typeStops, true)) {
-                    return;
-                }
-
-                $this->declaredVariables[] = $name;
-                continue;
-            }
-
-            // Anything else — bail out (we're past the name list).
-            return;
-        }
-    }
-
-    /**
-     * Writes user-declared session variables to {dataDir}/out/result.json.
-     * No file is written when there are no user-declared variables after
-     * filtering out internal `KBC_*` and `ABORT_TRANSFORMATION` names.
-     */
     public function exportSessionVariables(string $dataDir): void
     {
-        // Defense-in-depth filter + dedup (preserve order)
-        $filtered = [];
-        foreach ($this->declaredVariables as $name) {
-            $upper = strtoupper($name);
-            if (str_starts_with($upper, 'KBC_') || $upper === self::ABORT_TRANSFORMATION) {
-                continue;
-            }
-            if (!in_array($name, $filtered, true)) {
-                $filtered[] = $name;
-            }
-        }
-
-        if ($filtered === []) {
-            return;
-        }
-
-        // Build SELECT with backtick-escaped identifiers
-        $selectList = implode(', ', array_map(
-            static fn(string $n): string => '`' . str_replace('`', '\\`', $n) . '`',
-            $filtered,
-        ));
-        $result = $this->connection->executeQuery('SELECT ' . $selectList);
-
-        /** @var array<int, array<string, mixed>> $rows */
-        $rows = iterator_to_array($result->rows());
-        if ($rows === []) {
-            return;
-        }
-        $row = $rows[0];
-
-        $variables = [];
-        foreach ($filtered as $name) {
-            $value = $row[$name] ?? null;
-            $normalised = $this->normaliseVariableValue($value);
-            // Keboola's component runner stores only scalar/null variable
-            // values; non-scalar results (ARRAY/STRUCT) would be silently
-            // dropped. Encode them as a JSON string so the structure
-            // reaches downstream tasks intact.
-            if (is_array($normalised)) {
-                $encoded = json_encode($normalised, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                $normalised = $encoded === false ? null : $encoded;
-            }
-            $variables[$name] = $normalised;
-        }
-
-        $payload = ['variables' => $variables];
-        $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        if ($json === false) {
-            $this->logger->warning(sprintf(
-                'Failed to JSON-encode session variables for result.json: %s',
-                json_last_error_msg(),
-            ));
-            return;
-        }
-
-        file_put_contents($dataDir . '/out/result.json', $json);
-    }
-
-    /**
-     * Normalise a BigQuery row value to a JSON-encodable scalar/array.
-     * \DateTimeInterface gets explicit ISO-8601 because base \DateTime has
-     * no __toString; arrays are recursed so STRUCT/ARRAY values containing
-     * BQ objects (Date, Numeric, ...) are normalised element-by-element.
-     */
-    private function normaliseVariableValue(mixed $value): mixed
-    {
-        if ($value === null || is_scalar($value)) {
-            return $value;
-        }
-
-        if ($value instanceof DateTimeInterface) {
-            return $value->format('Y-m-d\TH:i:s.uP');
-        }
-
-        if (is_array($value)) {
-            $out = [];
-            foreach ($value as $k => $v) {
-                $out[$k] = $this->normaliseVariableValue($v);
-            }
-            return $out;
-        }
-
-        if (is_object($value)) {
-            if (method_exists($value, '__toString')) {
-                return (string) $value;
-            }
-            if ($value instanceof JsonSerializable) {
-                return $this->normaliseVariableValue($value->jsonSerialize());
-            }
-            if (is_iterable($value)) {
-                $out = [];
-                foreach ($value as $k => $v) {
-                    $out[$k] = $this->normaliseVariableValue($v);
-                }
-                return $out;
-            }
-        }
-
-        return null;
+        $this->sessionVariablesExporter->export($dataDir);
     }
 }
