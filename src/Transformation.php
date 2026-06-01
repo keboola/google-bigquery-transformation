@@ -445,7 +445,16 @@ class Transformation
         $variables = [];
         foreach ($filtered as $name) {
             $value = $row[$name] ?? null;
-            $variables[$name] = $this->normaliseVariableValue($value);
+            $normalised = $this->normaliseVariableValue($value);
+            // Keboola's component runner stores only scalar/null variable
+            // values; non-scalar results (ARRAY/STRUCT) would be silently
+            // dropped. Encode them as a JSON string so the structure
+            // reaches downstream tasks intact.
+            if (is_array($normalised)) {
+                $encoded = json_encode($normalised, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                $normalised = $encoded === false ? null : $encoded;
+            }
+            $variables[$name] = $normalised;
         }
 
         $payload = ['variables' => $variables];
