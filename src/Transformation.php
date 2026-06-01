@@ -7,6 +7,8 @@ namespace BigQueryTransformation;
 use BigQueryTransformation\Exception\ApplicationException;
 use BigQueryTransformation\Exception\MissingTableException;
 use BigQueryTransformation\Exception\TransformationAbortedException;
+use DateTimeInterface;
+use JsonSerializable;
 use Keboola\Component\Manifest\ManifestManager;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptions;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptionsSchema;
@@ -471,7 +473,7 @@ class Transformation
             return $value;
         }
 
-        if ($value instanceof \DateTimeInterface) {
+        if ($value instanceof DateTimeInterface) {
             return $value->format('Y-m-d\TH:i:s.uP');
         }
 
@@ -487,7 +489,7 @@ class Transformation
             if (method_exists($value, '__toString')) {
                 return (string) $value;
             }
-            if ($value instanceof \JsonSerializable) {
+            if ($value instanceof JsonSerializable) {
                 return $this->normaliseVariableValue($value->jsonSerialize());
             }
             if (is_iterable($value)) {
