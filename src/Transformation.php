@@ -449,7 +449,11 @@ class Transformation
         $payload = ['variables' => $variables];
         $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         if ($json === false) {
-            return; // best-effort: never fail the run because of result.json
+            $this->logger->warning(sprintf(
+                'Failed to JSON-encode session variables for result.json: %s',
+                json_last_error_msg(),
+            ));
+            return;
         }
 
         file_put_contents($dataDir . '/out/result.json', $json);
@@ -457,19 +461,44 @@ class Transformation
 
     /**
      * Normalise a BigQuery row value to a JSON-encodable scalar/array.
-     * Objects (Date, Timestamp, etc.) are cast to string via __toString
-     * when available; otherwise serialised through json_encode so types
-     * like \JsonSerializable round-trip correctly.
+     * \DateTimeInterface gets explicit ISO-8601 because base \DateTime has
+     * no __toString; arrays are recursed so STRUCT/ARRAY values containing
+     * BQ objects (Date, Numeric, ...) are normalised element-by-element.
      */
     private function normaliseVariableValue(mixed $value): mixed
     {
+        if ($value === null || is_scalar($value)) {
+            return $value;
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d\TH:i:s.uP');
+        }
+
+        if (is_array($value)) {
+            $out = [];
+            foreach ($value as $k => $v) {
+                $out[$k] = $this->normaliseVariableValue($v);
+            }
+            return $out;
+        }
+
         if (is_object($value)) {
             if (method_exists($value, '__toString')) {
                 return (string) $value;
             }
-            $encoded = json_encode($value);
-            return $encoded === false ? null : $encoded;
+            if ($value instanceof \JsonSerializable) {
+                return $this->normaliseVariableValue($value->jsonSerialize());
+            }
+            if (is_iterable($value)) {
+                $out = [];
+                foreach ($value as $k => $v) {
+                    $out[$k] = $this->normaliseVariableValue($v);
+                }
+                return $out;
+            }
         }
-        return $value;
+
+        return null;
     }
 }
