@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BigQueryTransformation;
 
+use BigQueryTransformation\Exception\ApplicationException;
 use BigQueryTransformation\Exception\TransformationAbortedException;
 use DateTime;
 use Keboola\Component\BaseComponent;
@@ -37,10 +38,24 @@ class Component extends BaseComponent
             return true;
         }, 10);
         $proxy = new RetryProxy($retryPolicy, new UniformRandomBackOffPolicy(1000, 3000));
-        $transformation = $proxy->call(
-            fn(): Transformation => new Transformation($config, $logger),
-        );
-        assert($transformation instanceof Transformation);
+        $connection = $proxy->call(function () use ($config, $logger): BigQueryConnection {
+            $runId = getenv('KBC_RUNID');
+            if (!$runId) {
+                throw new ApplicationException('Missing KBC_RUNID environment variable');
+            }
+            return new BigQueryConnection(
+                $config->getDatabaseConfig(),
+                $runId,
+                $config->getQueryTimeout(),
+                null,
+                $logger,
+                $config->getMaxPollRetries(),
+            );
+        });
+        assert($connection instanceof BigQueryConnection);
+
+        $sessionVariablesExporter = new SessionVariablesExporter($connection, $logger);
+        $transformation = new Transformation($config, $logger, $connection, $sessionVariablesExporter);
 
         $transformation->declareAbortVariable();
         $transformation->declareEnvVars();
@@ -52,7 +67,7 @@ class Component extends BaseComponent
         }
 
         $this->generateManifest($config, $transformation);
-        $transformation->exportSessionVariables($this->getDataDir());
+        $sessionVariablesExporter->export($this->getDataDir());
     }
 
     protected function getConfigClass(): string
