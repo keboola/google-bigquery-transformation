@@ -248,6 +248,29 @@ class SessionVariablesExporterTest extends TestCase
         self::assertNull($this->readResult());
     }
 
+    public function testVariableNamedLikeTypeKeywordIsDropped(): void
+    {
+        // Known limitation: the parser stops at the first type keyword, so a
+        // variable named `date` (a legal, non-reserved identifier in BigQuery)
+        // matches the DATE stop and is never captured. Pinned intentionally.
+        $exporter = $this->makeExporter(['date' => '2026-01-01']);
+        $exporter->captureFromQuery("DECLARE date STRING DEFAULT '2026-01-01'");
+        $exporter->export($this->dataDir);
+
+        self::assertNull($this->readResult());
+    }
+
+    public function testTypeKeywordNameMidListTruncatesRemainingNames(): void
+    {
+        // Same limitation in a comma-separated list: parsing stops at `date`,
+        // so both `date` and the trailing `c` are dropped; only `a` survives.
+        $exporter = $this->makeExporter(['a' => 'x', 'c' => 'x']);
+        $exporter->captureFromQuery('DECLARE a, date, c STRING DEFAULT \'x\'');
+        $exporter->export($this->dataDir);
+
+        self::assertSame(['variables' => ['a' => 'x']], $this->readResult());
+    }
+
     public function testSelectQueryIsBuiltFromCapturedNames(): void
     {
         $queryResults = $this->createMock(QueryResults::class);

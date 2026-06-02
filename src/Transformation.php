@@ -20,7 +20,7 @@ use Throwable;
 
 class Transformation
 {
-    private const ABORT_TRANSFORMATION = 'ABORT_TRANSFORMATION';
+    public const ABORT_TRANSFORMATION = 'ABORT_TRANSFORMATION';
     private BigQueryConnection $connection;
     private LoggerInterface $logger;
     private string $schema;

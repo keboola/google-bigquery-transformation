@@ -86,6 +86,15 @@ Notes:
 - `DATE`, `DATETIME`, `TIMESTAMP` and similar typed variables are serialised as ISO-8601 strings.
 - Variables declared inside nested `BEGIN ... END` blocks are local and not exported.
 
+**Known limitation:** the lightweight `DECLARE` parser stops at the first type
+keyword (`STRING`, `INT64`, `DATE`, `JSON`, …). These keywords are *not*
+reserved in BigQuery, so a variable named like a type is silently dropped — e.g.
+`DECLARE date STRING DEFAULT '2026-01-01'` will not be exported, and in a list
+such as `DECLARE a, date, c STRING` the parser stops at `date`, dropping `c`
+too. Avoid naming session variables after BigQuery type keywords if you need
+them exported. Fully disambiguating name- vs type-position would require a real
+SQL tokenizer.
+
 ## Development
 
 Clone this repository.

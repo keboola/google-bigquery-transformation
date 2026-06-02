@@ -10,10 +10,6 @@ use Psr\Log\LoggerInterface;
 
 class SessionVariablesExporter
 {
-    // Mirrors Transformation::ABORT_TRANSFORMATION; kept local so this class
-    // does not need to import Transformation just for the filter.
-    private const ABORT_VARIABLE = 'ABORT_TRANSFORMATION';
-
     /** @var array<int, string> */
     private array $declaredVariables = [];
 
@@ -89,7 +85,12 @@ class SessionVariablesExporter
             return;
         }
 
-        file_put_contents($dataDir . '/out/result.json', $json);
+        if (file_put_contents($dataDir . '/out/result.json', $json) === false) {
+            $this->logger->warning(sprintf(
+                'Failed to write session variables to result.json at "%s".',
+                $dataDir . '/out/result.json',
+            ));
+        }
     }
 
     /**
@@ -100,7 +101,7 @@ class SessionVariablesExporter
         $filtered = [];
         foreach ($this->declaredVariables as $name) {
             $upper = strtoupper($name);
-            if (str_starts_with($upper, 'KBC_') || $upper === self::ABORT_VARIABLE) {
+            if (str_starts_with($upper, 'KBC_') || $upper === Transformation::ABORT_TRANSFORMATION) {
                 continue;
             }
             if (!in_array($name, $filtered, true)) {
