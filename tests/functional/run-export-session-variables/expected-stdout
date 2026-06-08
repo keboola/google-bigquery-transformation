@@ -1,0 +1,4 @@
+Processing block "Block 1".
+Processing code "Code 1".
+Running query "DECLARE max_id INT64 DEFAULT 42".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults

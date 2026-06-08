@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace BigQueryTransformation;
 
-use BigQueryTransformation\Exception\ApplicationException;
 use BigQueryTransformation\Exception\MissingTableException;
 use BigQueryTransformation\Exception\TransformationAbortedException;
 use Keboola\Component\Manifest\ManifestManager;
@@ -21,29 +20,21 @@ use Throwable;
 
 class Transformation
 {
-    private const ABORT_TRANSFORMATION = 'ABORT_TRANSFORMATION';
+    public const ABORT_TRANSFORMATION = 'ABORT_TRANSFORMATION';
     private BigQueryConnection $connection;
     private LoggerInterface $logger;
     private string $schema;
+    private SessionVariablesExporter $sessionVariablesExporter;
 
-    /**
-     * @throws \BigQueryTransformation\Exception\ApplicationException
-     */
-    public function __construct(Config $config, LoggerInterface $logger)
-    {
-        $runId = getenv('KBC_RUNID');
-        if (!$runId) {
-            throw new ApplicationException('Missing KBC_RUNID environment variable');
-        }
+    public function __construct(
+        Config $config,
+        LoggerInterface $logger,
+        BigQueryConnection $connection,
+        SessionVariablesExporter $sessionVariablesExporter,
+    ) {
         $this->logger = $logger;
-        $this->connection = new BigQueryConnection(
-            $config->getDatabaseConfig(),
-            $runId,
-            $config->getQueryTimeout(),
-            null,
-            $this->logger,
-            $config->getMaxPollRetries(),
-        );
+        $this->connection = $connection;
+        $this->sessionVariablesExporter = $sessionVariablesExporter;
         /** @var string $schema */
         $schema = $config->getDatabaseConfig()['schema'];
         $this->schema = $schema;
@@ -200,6 +191,13 @@ class Transformation
             if (strlen(trim($uncommentedQuery)) === 0) {
                 continue;
             }
+
+            // Capture top-level DECLARE variable names before any further
+            // filtering so user-declared session variables can be exported
+            // to result.json on successful completion. Placement before the
+            // SELECT-skip is intentional and robust to future changes in
+            // the read-only-query filter.
+            $this->sessionVariablesExporter->captureFromQuery($uncommentedQuery);
 
             if (strtoupper(substr($uncommentedQuery, 0, 6)) === 'SELECT') {
                 $this->logger->info(sprintf('Ignoring select query "%s".', $this->queryExcerpt($query)));
