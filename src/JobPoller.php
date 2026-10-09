@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace BigQueryTransformation;
 
 use BigQueryTransformation\Exception\ApplicationException;
-use Closure;
 use Google\Cloud\BigQuery\Job;
 use Google\Cloud\Core\Exception\GoogleException;
 use Google\Cloud\Core\ExponentialBackoff;
 use Keboola\Component\UserException;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Throwable;
 
 /**
@@ -23,25 +24,12 @@ class JobPoller
     private const POLL_REQUEST_TIMEOUT_SECONDS = 120;
     private const CANCEL_REQUEST_TIMEOUT_SECONDS = 10;
 
-    private Closure $clock;
-
-    private Closure $sleep;
-
-    /**
-     * @param (Closure(): float)|null $clock returns current time in seconds
-     * @param (Closure(float): void)|null $sleep sleeps for given number of seconds
-     */
     public function __construct(
         private readonly int $queryTimeout,
         private readonly int $maxPollRetries,
         private readonly ?LoggerInterface $logger = null,
-        ?Closure $clock = null,
-        ?Closure $sleep = null,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
-        $this->clock = $clock ?? static fn(): float => microtime(true);
-        $this->sleep = $sleep ?? static function (float $seconds): void {
-            usleep((int) ($seconds * 1000000));
-        };
     }
 
     /**
@@ -60,7 +48,7 @@ class JobPoller
         $lastError = null;
         $attempt = 0;
         while (true) {
-            $remaining = $deadline === null ? null : $deadline - ($this->clock)();
+            $remaining = $deadline === null ? null : $deadline - $this->now();
             if ($remaining !== null && $remaining <= 0) {
                 $this->cancel($job);
                 if ($lastError !== null) {
@@ -122,9 +110,9 @@ class JobPoller
 
             $delay = ExponentialBackoff::calculateDelay($attempt) / 1000000;
             if ($deadline !== null) {
-                $delay = min($delay, max(0.0, $deadline - ($this->clock)()));
+                $delay = min($delay, max(0.0, $deadline - $this->now()));
             }
-            ($this->sleep)($delay);
+            $this->clock->sleep($delay);
             $attempt++;
         }
     }
@@ -141,6 +129,11 @@ class JobPoller
                 $e->getMessage(),
             ));
         }
+    }
+
+    private function now(): float
+    {
+        return (float) $this->clock->now()->format('U.u');
     }
 
     private function jobId(Job $job): string

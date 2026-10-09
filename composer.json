@@ -10,7 +10,8 @@
         "jdorn/sql-formatter": "^1.2",
         "keboola/php-component": "^10.0",
         "keboola/retry": "^0.5.1",
-        "keboola/table-backend-utils": "^2.0"
+        "keboola/table-backend-utils": "^2.0",
+        "symfony/clock": "^6.4"
     },
     "require-dev": {
         "keboola/coding-standard": ">=7.0.2",

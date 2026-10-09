@@ -11,22 +11,25 @@ use Google\Cloud\Core\Exception\ServiceException;
 use Keboola\Component\UserException;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Clock\MockClock;
 
 class JobPollerTest extends TestCase
 {
-    private float $now = 1000.0;
+    private MockClock $clock;
+
+    protected function setUp(): void
+    {
+        $this->clock = new MockClock('@1000');
+    }
+
+    private function now(): float
+    {
+        return (float) $this->clock->now()->format('U.u');
+    }
 
     private function createPoller(int $queryTimeout, int $maxPollRetries = 0): JobPoller
     {
-        return new JobPoller(
-            $queryTimeout,
-            $maxPollRetries,
-            null,
-            fn(): float => $this->now,
-            function (float $seconds): void {
-                $this->now += $seconds;
-            },
-        );
+        return new JobPoller($queryTimeout, $maxPollRetries, null, $this->clock);
     }
 
     /**
@@ -57,7 +60,7 @@ class JobPollerTest extends TestCase
         $job = $this->createJob(true, []);
         $job->expects($this->never())->method('reload');
 
-        $this->createPoller(10)->waitUntilDone($job, $this->now);
+        $this->createPoller(10)->waitUntilDone($job, $this->now());
     }
 
     public function testPollsUntilDone(): void
@@ -66,7 +69,7 @@ class JobPollerTest extends TestCase
         $job->expects($this->exactly(3))->method('reload');
         $job->expects($this->never())->method('cancel');
 
-        $this->createPoller(0)->waitUntilDone($job, $this->now);
+        $this->createPoller(0)->waitUntilDone($job, $this->now());
     }
 
     public function testRecoversFromPollErrors(): void
@@ -78,17 +81,17 @@ class JobPollerTest extends TestCase
         ]);
         $job->expects($this->exactly(3))->method('reload');
 
-        $this->createPoller(600)->waitUntilDone($job, $this->now);
+        $this->createPoller(600)->waitUntilDone($job, $this->now());
     }
 
     public function testPollRequestsDoNotRetryAndRespectRemainingTime(): void
     {
-        $startedAt = $this->now;
+        $startedAt = $this->now();
         $job = $this->createJob(false, []);
         $job->expects($this->atLeastOnce())
             ->method('reload')
             ->with($this->callback(function (array $options) use ($startedAt): bool {
-                $remaining = $startedAt + 30 + JobPoller::DEADLINE_GRACE_SECONDS - $this->now;
+                $remaining = $startedAt + 30 + JobPoller::DEADLINE_GRACE_SECONDS - $this->now();
                 return $options['retries'] === 0
                     && $options['requestTimeout'] >= 1
                     && $options['requestTimeout'] <= max(1, (int) ceil($remaining));
@@ -100,7 +103,7 @@ class JobPollerTest extends TestCase
 
     public function testRunningJobExceedingTimeoutIsCancelled(): void
     {
-        $startedAt = $this->now;
+        $startedAt = $this->now();
         $job = $this->createJob(false, []);
         $job->expects($this->once())
             ->method('cancel')
@@ -113,12 +116,12 @@ class JobPollerTest extends TestCase
         } catch (UserException $e) {
             self::assertSame('Query exceeded the maximum execution time', $e->getMessage());
         }
-        self::assertEqualsWithDelta($startedAt + 30 + JobPoller::DEADLINE_GRACE_SECONDS, $this->now, 0.001);
+        self::assertEqualsWithDelta($startedAt + 30 + JobPoller::DEADLINE_GRACE_SECONDS, $this->now(), 0.001);
     }
 
     public function testPersistentPollErrorsFailAtTimeoutAsApplicationError(): void
     {
-        $startedAt = $this->now;
+        $startedAt = $this->now();
         $job = $this->createJob(false, array_fill(
             0,
             1000,
@@ -134,7 +137,7 @@ class JobPollerTest extends TestCase
             self::assertStringContainsString('Request had invalid authentication credentials', $e->getMessage());
             self::assertInstanceOf(ServiceException::class, $e->getPrevious());
         }
-        self::assertEqualsWithDelta($startedAt + 300 + JobPoller::DEADLINE_GRACE_SECONDS, $this->now, 0.001);
+        self::assertEqualsWithDelta($startedAt + 300 + JobPoller::DEADLINE_GRACE_SECONDS, $this->now(), 0.001);
     }
 
     public function testCancelFailureDoesNotHideTimeout(): void
@@ -144,7 +147,7 @@ class JobPollerTest extends TestCase
 
         $this->expectException(UserException::class);
         $this->expectExceptionMessage('Query exceeded the maximum execution time');
-        $this->createPoller(5)->waitUntilDone($job, $this->now);
+        $this->createPoller(5)->waitUntilDone($job, $this->now());
     }
 
     public function testMaxPollRetriesExhausted(): void
@@ -154,7 +157,7 @@ class JobPollerTest extends TestCase
 
         $this->expectException(UserException::class);
         $this->expectExceptionMessage('BigQuery job did not complete within the allowed polling window');
-        $this->createPoller(0, 2)->waitUntilDone($job, $this->now);
+        $this->createPoller(0, 2)->waitUntilDone($job, $this->now());
     }
 
     public function testMaxPollRetriesExhaustedOnErrorsIsApplicationError(): void
@@ -163,6 +166,6 @@ class JobPollerTest extends TestCase
 
         $this->expectException(ApplicationException::class);
         $this->expectExceptionMessage('within 3 polling attempts. Last error: Forbidden');
-        $this->createPoller(0, 2)->waitUntilDone($job, $this->now);
+        $this->createPoller(0, 2)->waitUntilDone($job, $this->now());
     }
 }
