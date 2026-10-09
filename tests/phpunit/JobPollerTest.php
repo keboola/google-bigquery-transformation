@@ -102,7 +102,10 @@ class JobPollerTest extends TestCase
     {
         $startedAt = $this->now;
         $job = $this->createJob(false, []);
-        $job->expects($this->once())->method('cancel');
+        $job->expects($this->once())
+            ->method('cancel')
+            ->with($this->callback(fn(array $options): bool => $options['retries'] === 0
+                && $options['requestTimeout'] <= 10));
 
         try {
             $this->createPoller(30)->waitUntilDone($job, $startedAt);

@@ -14,16 +14,8 @@ use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
- * Polls jobs.get (status.state) until the job is DONE.
- *
- * Replaces Job::waitUntilComplete(), which has no wall-clock limit and whose
- * HTTP calls inherit the client-level retries — a series of failing jobs.get
- * calls (e.g. 401) kept the transformation waiting long after query_timeout,
- * even though BigQuery had already finished the job.
- *
- * Every poll error is retried; the wait is bounded by query_timeout (plus
- * a grace period for BigQuery to enforce jobTimeoutMs itself) and by
- * max_poll_retries. With neither set, the wait is unbounded.
+ * Polls jobs.get until the job is DONE. Unlike Job::waitUntilComplete(), the wait
+ * is bounded by query_timeout (+ grace) and max_poll_retries; poll errors are retried.
  */
 class JobPoller
 {
@@ -89,7 +81,7 @@ class JobPoller
 
             try {
                 $info = $job->reload([
-                    // retries are handled by this loop, so that a single poll cannot outlive the deadline
+                    // retried by this loop, so a poll cannot outlive the deadline
                     'retries' => 0,
                     'requestTimeout' => $remaining === null
                         ? self::POLL_REQUEST_TIMEOUT_SECONDS
@@ -140,7 +132,8 @@ class JobPoller
     private function cancel(Job $job): void
     {
         try {
-            $job->cancel(['requestTimeout' => self::CANCEL_REQUEST_TIMEOUT_SECONDS]);
+            // best effort, no retries
+            $job->cancel(['retries' => 0, 'requestTimeout' => self::CANCEL_REQUEST_TIMEOUT_SECONDS]);
         } catch (Throwable $e) {
             $this->logger?->warning(sprintf(
                 'Cancelling BigQuery job "%s" failed: %s',

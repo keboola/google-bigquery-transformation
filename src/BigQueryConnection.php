@@ -121,10 +121,8 @@ class BigQueryConnection
             $this->client->query($query, $queryOptions)->defaultDataset($this->dataset),
         );
 
-        // Poll jobs.get (status.state) instead of jobs.getQueryResults (jobComplete).
-        // For runtime errors such as "Not found: Files gs://…", BigQuery keeps
-        // jobComplete=false on getQueryResults indefinitely while the job itself
-        // reaches state=DONE.
+        // Poll jobs.get, not getQueryResults — on runtime errors (e.g. missing GCS files)
+        // the latter keeps jobComplete=false forever.
         (new JobPoller($this->queryTimeout, $this->maxPollRetries, $this->logger))
             ->waitUntilDone($job, $startedAt);
 

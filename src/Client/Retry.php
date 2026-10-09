@@ -21,8 +21,7 @@ final class Retry
         'jobRateLimitExceeded',
     ];
 
-    // The request is signed once and every retry re-sends the same token,
-    // so retrying 401 only helps with short-lived glitches.
+    // retries re-send the same token, so 401 retry only helps with short glitches
     public const MAX_UNAUTHORIZED_RETRIES = 3;
 
     public static function shouldRetryException(Throwable $ex, int $attempt = 0): bool
