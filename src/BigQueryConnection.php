@@ -88,7 +88,6 @@ class BigQueryConnection
 
     /**
      * @throws \Keboola\Component\UserException
-     * @throws \BigQueryTransformation\Exception\ApplicationException
      * @throws \Google\Cloud\Core\Exception\ServiceException
      */
     public function executeQuery(string $query): QueryResults

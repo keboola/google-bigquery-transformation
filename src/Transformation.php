@@ -6,7 +6,6 @@ namespace BigQueryTransformation;
 
 use BigQueryTransformation\Exception\MissingTableException;
 use BigQueryTransformation\Exception\TransformationAbortedException;
-use Keboola\CommonExceptions\ApplicationExceptionInterface;
 use Keboola\Component\Manifest\ManifestManager;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptions;
 use Keboola\Component\Manifest\ManifestManager\Options\OutTable\ManifestOptionsSchema;
@@ -212,8 +211,6 @@ class Transformation
                 $resultUrlLog = 'Query results URL: ' .
                     'https://console.cloud.google.com/bigquery?project=%s&j=bq:%s:%s&page=queryresults';
                 $this->logger->info(sprintf($resultUrlLog, $id['projectId'], $id['location'], $id['jobId']));
-            } catch (ApplicationExceptionInterface $exception) {
-                throw $exception;
             } catch (Throwable $exception) {
                 $bqMessage = null;
                 $messageArray = json_decode($exception->getMessage(), true);

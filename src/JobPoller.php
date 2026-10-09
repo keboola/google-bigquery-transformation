@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace BigQueryTransformation;
 
-use BigQueryTransformation\Exception\ApplicationException;
 use Google\Cloud\BigQuery\Job;
 use Google\Cloud\Core\Exception\GoogleException;
 use Google\Cloud\Core\ExponentialBackoff;
@@ -51,20 +50,11 @@ class JobPoller
             $remaining = $deadline === null ? null : $deadline - $this->now();
             if ($remaining !== null && $remaining <= 0) {
                 $this->cancel($job);
-                if ($lastError !== null) {
-                    throw new ApplicationException(
-                        sprintf(
-                            'Unable to get status of BigQuery job "%s" within the query timeout (%d s). '
-                            . 'Last error: %s',
-                            $this->jobId($job),
-                            $this->queryTimeout,
-                            $lastError->getMessage(),
-                        ),
-                        0,
-                        $lastError,
-                    );
-                }
-                throw new UserException('Query exceeded the maximum execution time');
+                throw new UserException(
+                    'Query exceeded the maximum execution time' . $this->describeError($job, $lastError),
+                    0,
+                    $lastError,
+                );
             }
 
             try {
@@ -90,21 +80,12 @@ class JobPoller
             }
 
             if ($this->maxPollRetries > 0 && $attempt >= $this->maxPollRetries) {
-                if ($lastError !== null) {
-                    throw new ApplicationException(
-                        sprintf(
-                            'Unable to get status of BigQuery job "%s" within %d polling attempts. Last error: %s',
-                            $this->jobId($job),
-                            $attempt + 1,
-                            $lastError->getMessage(),
-                        ),
-                        0,
-                        $lastError,
-                    );
-                }
                 throw new UserException(
                     'BigQuery job did not complete within the allowed polling window; '
-                    . 'the query may be stuck or the BigQuery API unreachable.',
+                    . 'the query may be stuck or the BigQuery API unreachable'
+                    . $this->describeError($job, $lastError),
+                    0,
+                    $lastError,
                 );
             }
 
@@ -129,6 +110,18 @@ class JobPoller
                 $e->getMessage(),
             ));
         }
+    }
+
+    private function describeError(Job $job, ?Throwable $lastError): string
+    {
+        if ($lastError === null) {
+            return '.';
+        }
+        return sprintf(
+            ' (status of job "%s" could not be retrieved: %s).',
+            $this->jobId($job),
+            $lastError->getMessage(),
+        );
     }
 
     private function now(): float

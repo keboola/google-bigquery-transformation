@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace BigQueryTransformation\Tests;
 
-use BigQueryTransformation\Exception\ApplicationException;
 use BigQueryTransformation\JobPoller;
 use Google\Cloud\BigQuery\Job;
 use Google\Cloud\Core\Exception\ServiceException;
@@ -114,12 +113,12 @@ class JobPollerTest extends TestCase
             $this->createPoller(30)->waitUntilDone($job, $startedAt);
             self::fail('Expected timeout.');
         } catch (UserException $e) {
-            self::assertSame('Query exceeded the maximum execution time', $e->getMessage());
+            self::assertSame('Query exceeded the maximum execution time.', $e->getMessage());
         }
         self::assertEqualsWithDelta($startedAt + 30 + JobPoller::DEADLINE_GRACE_SECONDS, $this->now(), 0.001);
     }
 
-    public function testPersistentPollErrorsFailAtTimeoutAsApplicationError(): void
+    public function testPersistentPollErrorsFailAtTimeoutWithLastError(): void
     {
         $startedAt = $this->now();
         $job = $this->createJob(false, array_fill(
@@ -132,9 +131,12 @@ class JobPollerTest extends TestCase
         try {
             $this->createPoller(300)->waitUntilDone($job, $startedAt);
             self::fail('Expected timeout.');
-        } catch (ApplicationException $e) {
-            self::assertStringContainsString('within the query timeout (300 s)', $e->getMessage());
-            self::assertStringContainsString('Request had invalid authentication credentials', $e->getMessage());
+        } catch (UserException $e) {
+            self::assertSame(
+                'Query exceeded the maximum execution time (status of job "job-1" could not be retrieved: '
+                . 'Request had invalid authentication credentials).',
+                $e->getMessage(),
+            );
             self::assertInstanceOf(ServiceException::class, $e->getPrevious());
         }
         self::assertEqualsWithDelta($startedAt + 300 + JobPoller::DEADLINE_GRACE_SECONDS, $this->now(), 0.001);
@@ -160,12 +162,12 @@ class JobPollerTest extends TestCase
         $this->createPoller(0, 2)->waitUntilDone($job, $this->now());
     }
 
-    public function testMaxPollRetriesExhaustedOnErrorsIsApplicationError(): void
+    public function testMaxPollRetriesExhaustedOnErrorsIncludesLastError(): void
     {
         $job = $this->createJob(false, array_fill(0, 3, new ServiceException('Forbidden', 403)));
 
-        $this->expectException(ApplicationException::class);
-        $this->expectExceptionMessage('within 3 polling attempts. Last error: Forbidden');
+        $this->expectException(UserException::class);
+        $this->expectExceptionMessage('(status of job "job-1" could not be retrieved: Forbidden).');
         $this->createPoller(0, 2)->waitUntilDone($job, $this->now());
     }
 }
