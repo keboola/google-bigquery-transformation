@@ -21,11 +21,18 @@ final class Retry
         'jobRateLimitExceeded',
     ];
 
-    public static function shouldRetryException(Throwable $ex): bool
+    // The request is signed once and every retry re-sends the same token,
+    // so retrying 401 only helps with short-lived glitches.
+    public const MAX_UNAUTHORIZED_RETRIES = 3;
+
+    public static function shouldRetryException(Throwable $ex, int $attempt = 0): bool
     {
         $statusCode = $ex->getCode();
 
-        if (in_array($statusCode, [401, 429, 500, 503,])) {
+        if ($statusCode === 401) {
+            return $attempt < self::MAX_UNAUTHORIZED_RETRIES;
+        }
+        if (in_array($statusCode, [429, 500, 503,])) {
             return true;
         }
         if ($statusCode >= 200 && $statusCode < 300) {

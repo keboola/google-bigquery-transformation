@@ -8,7 +8,6 @@ use BigQueryTransformation\Client\Retry;
 use Google\Auth\HttpHandler\Guzzle6HttpHandler;
 use Google\Cloud\BigQuery\BigQueryClient;
 use Google\Cloud\BigQuery\Dataset;
-use Google\Cloud\BigQuery\Exception\JobException;
 use Google\Cloud\BigQuery\QueryResults;
 use Google\Cloud\Core\ClientTrait;
 use Google\Cloud\Core\Exception\ServiceException;
@@ -59,8 +58,9 @@ class BigQueryConnection
                 $argsNum = func_num_args();
                 if ($argsNum === 2) {
                     $ex = func_get_arg(0);
+                    $attempt = func_get_arg(1);
                     if ($ex instanceof Throwable) {
-                        return Retry::shouldRetryException($ex);
+                        return Retry::shouldRetryException($ex, is_int($attempt) ? $attempt : 0);
                     }
                 }
                 return [Retry::class, 'shouldRetryException'];
@@ -88,6 +88,7 @@ class BigQueryConnection
 
     /**
      * @throws \Keboola\Component\UserException
+     * @throws \BigQueryTransformation\Exception\ApplicationException
      * @throws \Google\Cloud\Core\Exception\ServiceException
      */
     public function executeQuery(string $query): QueryResults
@@ -115,31 +116,17 @@ class BigQueryConnection
             ),
         );
 
-        $waitOptions = [];
-        if ($this->maxPollRetries > 0) {
-            $waitOptions['maxRetries'] = $this->maxPollRetries;
-        }
-
         $startedAt = microtime(true);
         $job = $this->client->startQuery(
             $this->client->query($query, $queryOptions)->defaultDataset($this->dataset),
         );
 
-        try {
-            // Poll jobs.get (status.state) instead of jobs.getQueryResults (jobComplete).
-            // For runtime errors such as "Not found: Files gs://…", BigQuery keeps
-            // jobComplete=false on getQueryResults indefinitely while the job itself
-            // reaches state=DONE — using Job::waitUntilComplete avoids the silent hang.
-            $job->waitUntilComplete($waitOptions);
-        } catch (JobException $e) {
-            throw new UserException(
-                'BigQuery job did not complete within the allowed polling window; '
-                . 'the query may be stuck or the BigQuery API unreachable. '
-                . 'Original error: ' . $e->getMessage(),
-                0,
-                $e,
-            );
-        }
+        // Poll jobs.get (status.state) instead of jobs.getQueryResults (jobComplete).
+        // For runtime errors such as "Not found: Files gs://…", BigQuery keeps
+        // jobComplete=false on getQueryResults indefinitely while the job itself
+        // reaches state=DONE.
+        (new JobPoller($this->queryTimeout, $this->maxPollRetries, $this->logger))
+            ->waitUntilDone($job, $startedAt);
 
         $this->logger?->debug(sprintf(
             'BigQuery job %s finished in %.1fs',
