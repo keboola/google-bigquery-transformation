@@ -21,6 +21,7 @@ use Throwable;
 class Transformation
 {
     public const ABORT_TRANSFORMATION = 'ABORT_TRANSFORMATION';
+    private const KBC_DESCRIPTION = 'KBC.description';
     private BigQueryConnection $connection;
     private LoggerInterface $logger;
     private string $schema;
@@ -53,66 +54,108 @@ class Transformation
         bool $usingLegacyManifest,
     ): void {
         $tableStructures = $this->getTables($tableNames, $transformationFailed);
-        foreach ($tableStructures as $tableDef) {
-            $schema = [];
-
-            /** @var \Keboola\TableBackendUtils\Column\Bigquery\BigqueryColumn $column */
-            foreach ($tableDef->getColumnsDefinitions() as $column) {
-                $dataTypes = [
-                    'base' => [
-                        'type' => $column->getColumnDefinition()->getBasetype(),
-                    ],
-                    'bigquery' => [
-                        'type' => $column->getColumnDefinition()->getType(),
-                    ],
-                ];
-
-                if ($column->getColumnDefinition()->getLength() !== null) {
-                    $dataTypes['bigquery']['length'] = $column->getColumnDefinition()->getLength();
-                }
-
-                if ($column->getColumnDefinition()->getDefault() !== null) {
-                    $dataTypes['base']['default'] = $column->getColumnDefinition()->getDefault();
-                    $dataTypes['bigquery']['default'] = $column->getColumnDefinition()->getDefault();
-                }
-
-                $metadata = [];
-                foreach ($column->getColumnDefinition()->toMetadata() as $value) {
-                    $metadata[$value['key']] = $value['value'];
-                }
-
-                $schema[] = new ManifestOptionsSchema(
-                    $column->getColumnName(),
-                    $dataTypes,
-                    $column->getColumnDefinition()->isNullable(),
-                    in_array($column->getColumnName(), $tableDef->getPrimaryKeysNames()),
-                    null,
-                    $metadata,
-                );
-            }
-
-            $tableMetadata = [
-                'KBC.name' => $tableDef->getTableName(),
-                Common::KBC_METADATA_KEY_BACKEND => 'bigquery',
-            ];
-
-            $tableManifestOptions = new ManifestOptions();
-            $tableManifestOptions
-                ->setTableMetadata($tableMetadata)
-                ->setSchema($schema)
-                ->setManifestType(ManifestOptions::MANIFEST_TYPE_OUTPUT)
-            ;
+        foreach ($tableStructures as $table) {
+            $tableDef = $table['definition'];
             $manifestManager->writeTableManifest(
                 $tableDef->getTableName(),
-                $tableManifestOptions,
+                self::createTableManifestOptions(
+                    $tableDef,
+                    $table['columnDescriptions'],
+                    $table['tableDescription'],
+                    $usingLegacyManifest,
+                ),
                 $usingLegacyManifest,
             );
         }
     }
 
     /**
+     * @param array<string, string|null> $columnDescriptions
+     * @throws \Keboola\Component\Manifest\ManifestManager\Options\OptionsValidationException
+     */
+    public static function createTableManifestOptions(
+        BigqueryTableDefinition $tableDef,
+        array $columnDescriptions,
+        ?string $tableDescription,
+        bool $usingLegacyManifest,
+    ): ManifestOptions {
+        $schema = [];
+
+        /** @var \Keboola\TableBackendUtils\Column\Bigquery\BigqueryColumn $column */
+        foreach ($tableDef->getColumnsDefinitions() as $column) {
+            $dataTypes = [
+                'base' => [
+                    'type' => $column->getColumnDefinition()->getBasetype(),
+                ],
+                'bigquery' => [
+                    'type' => $column->getColumnDefinition()->getType(),
+                ],
+            ];
+
+            if ($column->getColumnDefinition()->getLength() !== null) {
+                $dataTypes['bigquery']['length'] = $column->getColumnDefinition()->getLength();
+            }
+
+            if ($column->getColumnDefinition()->getDefault() !== null) {
+                $dataTypes['base']['default'] = $column->getColumnDefinition()->getDefault();
+                $dataTypes['bigquery']['default'] = $column->getColumnDefinition()->getDefault();
+            }
+
+            $metadata = [];
+            foreach ($column->getColumnDefinition()->toMetadata() as $value) {
+                $metadata[$value['key']] = $value['value'];
+            }
+
+            $schema[] = new ManifestOptionsSchema(
+                $column->getColumnName(),
+                $dataTypes,
+                $column->getColumnDefinition()->isNullable(),
+                in_array($column->getColumnName(), $tableDef->getPrimaryKeysNames()),
+                self::nonEmptyDescription($columnDescriptions[$column->getColumnName()] ?? null),
+                $metadata,
+            );
+        }
+
+        $tableMetadata = [
+            'KBC.name' => $tableDef->getTableName(),
+            Common::KBC_METADATA_KEY_BACKEND => 'bigquery',
+        ];
+
+        $tableDescription = self::nonEmptyDescription($tableDescription);
+        // The legacy serializer drops the top-level description, so legacy manifests carry it as metadata.
+        if ($tableDescription !== null && $usingLegacyManifest) {
+            $tableMetadata[self::KBC_DESCRIPTION] = $tableDescription;
+        }
+
+        $tableManifestOptions = new ManifestOptions();
+        $tableManifestOptions
+            ->setTableMetadata($tableMetadata)
+            ->setSchema($schema)
+            ->setManifestType(ManifestOptions::MANIFEST_TYPE_OUTPUT)
+        ;
+
+        if ($tableDescription !== null && !$usingLegacyManifest) {
+            $tableManifestOptions->setDescription($tableDescription);
+        }
+
+        return $tableManifestOptions;
+    }
+
+    private static function nonEmptyDescription(?string $description): ?string
+    {
+        if ($description === null || trim($description) === '') {
+            return null;
+        }
+        return $description;
+    }
+
+    /**
      * @param array<array{'source': string, 'write_always'?: bool}> $tables
-     * @return \Keboola\TableBackendUtils\Table\Bigquery\BigqueryTableDefinition[]
+     * @return array<array{
+     *     definition: BigqueryTableDefinition,
+     *     tableDescription: string|null,
+     *     columnDescriptions: array<string, string|null>
+     * }>
      * @throws \Google\Cloud\Core\Exception\GoogleException
      * @throws \Keboola\Component\UserException
      */
@@ -135,7 +178,10 @@ class Transformation
         $missingTables = [];
         foreach ($sourceTables as $tableName) {
             try {
-                $defs[] = $this->getDefinition($tableName);
+                $defs[] = [
+                    'definition' => $this->getDefinition($tableName),
+                    ...$this->getDescriptions($tableName),
+                ];
             } catch (MissingTableException $e) {
                 $missingTables[] = $e->getTableName();
             }
@@ -264,6 +310,27 @@ class Transformation
             $columns,
             $ref->getPrimaryKeysNames(),
         );
+    }
+
+    /**
+     * Column descriptions cover top-level fields only; nested RECORD fields are not propagated.
+     *
+     * @return array{tableDescription: string|null, columnDescriptions: array<string, string|null>}
+     */
+    protected function getDescriptions(string $tableName): array
+    {
+        /** @var array{description?: string, schema?: array{fields?: array<array{name: string, description?: string}>}} $info */
+        $info = $this->connection->getClient()->dataset($this->schema)->table($tableName)->info();
+
+        $columnDescriptions = [];
+        foreach ($info['schema']['fields'] ?? [] as $field) {
+            $columnDescriptions[$field['name']] = $field['description'] ?? null;
+        }
+
+        return [
+            'tableDescription' => $info['description'] ?? null,
+            'columnDescriptions' => $columnDescriptions,
+        ];
     }
 
     public function declareAbortVariable(): void

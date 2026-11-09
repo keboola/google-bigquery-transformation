@@ -1,0 +1,4 @@
+Processing block "first block".
+Processing code "first code".
+Running query "CREATE TABLE `commented` (id INT64 OPTIONS(description='Customer identifier'), empty_comment STRING OPTIONS(description=''), no_comment STRING) OPTIONS(description='Customer table');".
+Query results URL: https://console.cloud.google.com/bigquery?project=%s&j=bq:%s&page=queryresults
