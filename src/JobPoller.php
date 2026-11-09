@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BigQueryTransformation;
 
+use BigQueryTransformation\Client\Retry;
 use Google\Cloud\BigQuery\Job;
 use Google\Cloud\Core\Exception\GoogleException;
 use Google\Cloud\Core\ExponentialBackoff;
@@ -15,13 +16,15 @@ use Throwable;
 
 /**
  * Polls jobs.get until the job is DONE. Unlike Job::waitUntilComplete(), the wait
- * is bounded by query_timeout (+ grace) and max_poll_retries; poll errors are retried.
+ * is bounded by query_timeout (+ grace) and max_poll_retries; transient poll errors are retried.
  */
 class JobPoller
 {
     public const DEADLINE_GRACE_SECONDS = 60;
     private const POLL_REQUEST_TIMEOUT_SECONDS = 120;
     private const CANCEL_REQUEST_TIMEOUT_SECONDS = 10;
+    // retrying these cannot help, unless the body says otherwise (e.g. 403 rateLimitExceeded)
+    private const PERMANENT_ERROR_CODES = [400, 403, 404];
 
     public function __construct(
         private readonly int $queryTimeout,
@@ -70,6 +73,16 @@ class JobPoller
                     return;
                 }
             } catch (GoogleException $e) {
+                if (in_array($e->getCode(), self::PERMANENT_ERROR_CODES, true)
+                    && !Retry::shouldRetryException($e)
+                ) {
+                    $this->cancel($job);
+                    throw new UserException(
+                        'Polling status of BigQuery job failed' . $this->describeError($job, $e),
+                        0,
+                        $e,
+                    );
+                }
                 $lastError = $e;
                 $this->logger?->warning(sprintf(
                     'Polling status of BigQuery job "%s" failed (attempt %d): %s',

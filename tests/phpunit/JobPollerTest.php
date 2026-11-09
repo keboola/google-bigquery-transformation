@@ -164,10 +164,70 @@ class JobPollerTest extends TestCase
 
     public function testMaxPollRetriesExhaustedOnErrorsIncludesLastError(): void
     {
-        $job = $this->createJob(false, array_fill(0, 3, new ServiceException('Forbidden', 403)));
+        $job = $this->createJob(false, array_fill(0, 3, new ServiceException('Backend error', 500)));
 
         $this->expectException(UserException::class);
-        $this->expectExceptionMessage('(status of job "job-1" could not be retrieved: Forbidden).');
+        $this->expectExceptionMessage('(status of job "job-1" could not be retrieved: Backend error).');
         $this->createPoller(0, 2)->waitUntilDone($job, $this->now());
+    }
+
+    /**
+     * @return iterable<string, array{ServiceException}>
+     */
+    public function permanentPollErrorProvider(): iterable
+    {
+        yield 'bad request' => [new ServiceException('Invalid job ID', 400)];
+        yield 'forbidden' => [new ServiceException('Access Denied', 403)];
+        yield 'not found' => [new ServiceException('Not found: Job job-1', 404)];
+    }
+
+    /**
+     * @dataProvider permanentPollErrorProvider
+     */
+    public function testPermanentPollErrorFailsFast(ServiceException $error): void
+    {
+        $job = $this->createJob(false, [$error, true]);
+        $job->expects($this->once())->method('reload');
+        $job->expects($this->once())->method('cancel');
+
+        try {
+            // no timeout and no retry limit: without failing fast this would poll forever
+            $this->createPoller(0)->waitUntilDone($job, $this->now());
+            self::fail('Expected failure.');
+        } catch (UserException $e) {
+            self::assertSame(
+                sprintf(
+                    'Polling status of BigQuery job failed (status of job "job-1" could not be retrieved: %s).',
+                    $error->getMessage(),
+                ),
+                $e->getMessage(),
+            );
+            self::assertSame($error, $e->getPrevious());
+        }
+    }
+
+    public function testRateLimitedPollIsRetried(): void
+    {
+        $rateLimited = new ServiceException(
+            (string) json_encode(['error' => [
+                'code' => 403,
+                'message' => 'Exceeded rate limits',
+                'errors' => [['reason' => 'rateLimitExceeded']],
+            ]]),
+            403,
+        );
+        $job = $this->createJob(false, [$rateLimited, true]);
+        $job->expects($this->exactly(2))->method('reload');
+        $job->expects($this->never())->method('cancel');
+
+        $this->createPoller(0)->waitUntilDone($job, $this->now());
+    }
+
+    public function testPollTimeoutIsRetried(): void
+    {
+        $job = $this->createJob(false, [new ServiceException('cURL error 28: Operation timed out', 0), true]);
+        $job->expects($this->exactly(2))->method('reload');
+
+        $this->createPoller(0)->waitUntilDone($job, $this->now());
     }
 }
