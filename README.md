@@ -10,8 +10,8 @@ Transformation component which runs SQL queries on BigQuery.
         - `credentials` object (required)
             - ...
 - `parameters`
-    - `query_timeout` integer (optional, default `0`): timeout for a request in seconds, `0` means no timeout
-    - `max_poll_retries` integer (optional, default `0`): upper bound on BigQuery job polling retries. `0` means unlimited (the SDK default); a positive value caps the exponential-backoff polling loop so a stuck job fails with a clear error instead of hanging until the component hard-timeout. As a rough guide, `200` ≈ 3 h, `500` ≈ 8 h of cumulative backoff.
+    - `query_timeout` integer (optional, default `0`): timeout for a query in seconds, `0` means no timeout. It is enforced by BigQuery (`jobTimeoutMs`) and also on the client: if the job status cannot be confirmed within the timeout plus a 60 s grace period (e.g. polling keeps failing), the job is cancelled and the transformation fails.
+    - `max_poll_retries` integer (optional, default `0`): upper bound on BigQuery job polling retries. `0` means unlimited; a positive value caps the exponential-backoff polling loop so a stuck job fails with a clear error instead of hanging until the component hard-timeout. As a rough guide, `200` ≈ 3 h, `500` ≈ 8 h of cumulative backoff.
     - `blocks` array (required): list of blocks
         - `name` string (required): name of the block
         - `codes` array (required): list of codes

@@ -76,6 +76,15 @@ class RetryTest extends TestCase
         $this->assertTrue(Retry::shouldRetryException($ex));
     }
 
+    public function testUnauthorizedRetriesAreLimited(): void
+    {
+        $ex = $this->getException(401);
+        for ($attempt = 0; $attempt < Retry::MAX_UNAUTHORIZED_RETRIES; $attempt++) {
+            $this->assertTrue(Retry::shouldRetryException($ex, $attempt));
+        }
+        $this->assertFalse(Retry::shouldRetryException($ex, Retry::MAX_UNAUTHORIZED_RETRIES));
+    }
+
     public function testNotJsonResponse(): void
     {
         $ex = $this->getException(418, 'not json');
